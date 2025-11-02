@@ -160,14 +160,15 @@ li .delete-btn {
 }
 .calendar-count {
   position: absolute;
-  top: 22px;
-  right: 10px;
-  font-size: 0.77em;
+  top: 26px;
+  right: 12px;
+  font-size: 0.66em;
   color: var(--primary-dark);
-  font-weight: 400;
+  font-weight: 300;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.85;
+  opacity: 0.77;
+  letter-spacing: 0.5px;
 }
 .calendar-header {
   display: flex;
