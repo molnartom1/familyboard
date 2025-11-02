@@ -26,6 +26,8 @@
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
+  <!-- Névnap kiírás a naptár előtt -->
+  <div id="nevnap-notice" style="text-align:center; font-size:1.1em; font-weight:bold; color:#247BFF; margin-bottom:0.7em;"></div>
   <section class="calendar-card">
     <div class="calendar-header">
       <button id="prev-month" class="calendar-arrow">&#8592;</button>
@@ -57,6 +59,20 @@
   </section>
 </div>
 <script>
+// Névnap API kiírás:
+fetch("https://api.nevnapok.eu/ma")
+  .then(response => response.json())
+  .then(data => {
+    if (data && data.length > 0) {
+      document.getElementById("nevnap-notice").textContent =
+        `Ma ${data.join(", ")} névnapja van!`;
+    } else {
+      document.getElementById("nevnap-notice").textContent = "";
+    }
+  })
+  .catch(()=>{});
+
+// --- Eddigi teljes app JS ---
 const firebaseConfig = {
   apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
   authDomain: "mosas-nyilvantartas.firebaseapp.com",
