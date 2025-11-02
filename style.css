@@ -197,7 +197,7 @@ li .delete-btn {
   font-size: .93em;
   margin-bottom: .2rem;
 }
-/* Mobilos középrehelyezés */
+/* Mobilos középrehelyezés minden modulra */
 @media (max-width: 600px) {
   #main-section {
     display: flex;
@@ -214,8 +214,6 @@ li .delete-btn {
     align-self: center;
   }
   header { flex-direction: column; gap: 0.5rem; }
-}
-@media (max-width: 600px) {
   #login-section {
     display: flex;
     flex-direction: column;
