@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Családi Naptár és Bevásárlólista</title>
-  <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="icon-192.png">
+  <meta name="theme-color" content="#247BFF">
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
@@ -17,13 +19,11 @@
   <button id="pin-submit">Belépés</button>
   <div class="error" id="pin-error"></div>
 </div>
-
 <div id="main-section" style="display:none;">
   <header>
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
-
   <section class="calendar-card">
     <div class="calendar-header">
       <button id="prev-month" class="calendar-arrow">&#8592;</button>
@@ -35,7 +35,6 @@
     </div>
     <div id="calendar-grid" class="calendar-grid"></div>
   </section>
-
   <section id="calendar">
     <h2>Esemény hozzáadás</h2>
     <form id="event-form">
@@ -46,7 +45,6 @@
     </form>
     <ul id="event-list"></ul>
   </section>
-
   <section id="shopping">
     <h2>Bevásárlólista</h2>
     <form id="item-form">
@@ -152,7 +150,7 @@ function renderCalendar(evMap={}) {
       selectedDay = cell.getAttribute('data-date');
       document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
       cell.classList.add('selected');
-      loadEvents(); // --- Csak a kiválasztott nap mutatása
+      loadEvents();
     };
   });
 }
@@ -207,7 +205,6 @@ eventForm.onsubmit = function(e) {
   });
   eventForm.reset();
 };
-// Csak a kiválasztott nap eseményei jelennek meg
 function loadEvents() {
   db.collection("events")
     .where("from", ">=", selectedDay + "T00:00")
