@@ -108,8 +108,7 @@ function anonymousSignIn() {
     pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
-
-// ---- MODERN HAVI NAPTÁR: max 3 pötty, további események száma jobbra fent, kisebb ----
+// ---- NAPTÁR: max 3 pötty, további eseményszám zárójelben, KISEBB ----
 const calendarGrid = document.getElementById("calendar-grid");
 const calendarTitle = document.getElementById("calendar-title");
 const prevMonthBtn = document.getElementById("prev-month");
@@ -117,7 +116,6 @@ const nextMonthBtn = document.getElementById("next-month");
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let selectedDay = new Date().toISOString().slice(0, 10);
-
 function renderCalendar(evMap={}) {
   let d = new Date(currentYear, currentMonth);
   calendarTitle.textContent = d.toLocaleString('hu', { month: 'long' }) + " " + currentYear;
@@ -141,7 +139,7 @@ function renderCalendar(evMap={}) {
         dotsHTML += `<div class="calendar-dot" style="left:${28 + 18*i}%"></div>`;
       }
       if (eventi.length > 3) {
-        countHTML = `<span class="calendar-count">(${eventi.length})</span>`;
+        countHTML = `<span class="calendar-count">&#40;${eventi.length}&#41;</span>`;
       }
     }
     calendarGrid.innerHTML += `
@@ -191,11 +189,9 @@ function fetchMonthlyEventsAndRender() {
        renderCalendar(evMap);
     });
 }
-
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
-
 // Események és Bevásárlólista
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
