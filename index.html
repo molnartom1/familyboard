@@ -6,7 +6,7 @@
   <title>Családi Naptár és Bevásárlólista</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
-  <!-- Firebase SDK (core, auth, firestore) -->
+  <!-- Firebase SDK-k -->
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
@@ -20,12 +20,27 @@
 </div>
 
 <div id="main-section" style="display:none;">
+
   <header>
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
+
+  <!-- MODERN Havi naptár kártya -->
+  <section class="calendar-card">
+    <div class="calendar-header">
+      <button id="prev-month" class="calendar-arrow">&#8592;</button>
+      <span id="calendar-title"></span>
+      <button id="next-month" class="calendar-arrow">&#8594;</button>
+    </div>
+    <div class="calendar-days">
+      <span>H</span><span>K</span><span>Sz</span><span>Cs</span><span>P</span><span>Szo</span><span>V</span>
+    </div>
+    <div id="calendar-grid" class="calendar-grid"></div>
+  </section>
+
   <section id="calendar">
-    <h2>Naptár</h2>
+    <h2>Esemény hozzáadás</h2>
     <form id="event-form">
       <input type="text" id="event-title" placeholder="Esemény neve" required>
       <input type="datetime-local" id="event-from" required>
@@ -34,6 +49,7 @@
     </form>
     <ul id="event-list"></ul>
   </section>
+
   <section id="shopping">
     <h2>Bevásárlólista</h2>
     <form id="item-form">
@@ -44,6 +60,7 @@
   </section>
 </div>
 <script>
+// --- Firebase & PIN ---
 const firebaseConfig = {
   apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
   authDomain: "mosas-nyilvantartas.firebaseapp.com",
@@ -55,12 +72,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-// Firestore offline támogatás
 db.enablePersistence().catch(function(err) {
   console.log("Offline támogatás hibája:", err.code);
 });
 const CORRECT_PIN = "2025";
-// UI
 const loginSection = document.getElementById("login-section");
 const mainSection = document.getElementById("main-section");
 const pinInput = document.getElementById("pin-input");
@@ -81,22 +96,91 @@ document.getElementById("logout-btn").onclick = function() {
   pinInput.value = "";
   firebase.auth().signOut();
 };
-// PIN kérés törléshez
 function askPinForDelete(cb) {
   let pin = prompt("Törléshez add meg a PIN-t:");
   if (pin === CORRECT_PIN) cb();
   else alert("Hibás PIN!");
 }
-// Auth
 function anonymousSignIn() {
   auth.signInAnonymously().then(() => {
+    fetchMonthlyEventsAndRender();
     loadEvents();
     loadItems();
   }).catch(error => {
     pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
-// Naptár Firestore kezelése
+
+// ---- MODERN HAVI NAPTÁR LOGIKA ----
+const calendarGrid = document.getElementById("calendar-grid");
+const calendarTitle = document.getElementById("calendar-title");
+const prevMonthBtn = document.getElementById("prev-month");
+const nextMonthBtn = document.getElementById("next-month");
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let selectedDay = new Date().toISOString().slice(0, 10); // alapértelmezett: ma
+function renderCalendar(evMap={}) {
+  let d = new Date(currentYear, currentMonth);
+  calendarTitle.textContent = d.toLocaleString('hu', { month: 'long' }) + " " + currentYear;
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay() || 7;
+  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+  calendarGrid.innerHTML = "";
+  for(let i=1; i<firstDay; i++) { calendarGrid.innerHTML += `<div></div>`; }
+  for(let day=1; day<=daysInMonth; day++) {
+    const cellDate = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const today = new Date();
+    let extra = "";
+    if (cellDate === today.toISOString().slice(0, 10)) extra += " today";
+    let selected = "";
+    if (cellDate === selectedDay) selected += " selected";
+    calendarGrid.innerHTML += `
+      <div class="calendar-cell${extra}${selected}" data-date="${cellDate}">
+        ${day}
+        ${evMap[cellDate] ? '<div class="calendar-dot"></div>' : ''}
+      </div>
+    `;
+  }
+  document.querySelectorAll('.calendar-cell').forEach(cell => {
+    cell.onclick = () => {
+      selectedDay = cell.getAttribute('data-date');
+      document.getElementById("event-from").value = selectedDay + "T09:00";
+      document.getElementById("event-to").value = selectedDay + "T10:00";
+      document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
+      cell.classList.add('selected');
+    };
+  });
+}
+prevMonthBtn.onclick = () => {
+  currentMonth--;
+  if(currentMonth<0) { currentMonth=11; currentYear--; }
+  fetchMonthlyEventsAndRender();
+};
+nextMonthBtn.onclick = () => {
+  currentMonth++;
+  if(currentMonth>11) { currentMonth=0; currentYear++; }
+  fetchMonthlyEventsAndRender();
+};
+function fetchMonthlyEventsAndRender() {
+  const start = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01T00:00`;
+  const end = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(new Date(currentYear, currentMonth+1, 0).getDate()).padStart(2,'0')}T23:59`;
+  db.collection("events")
+    .where("from", ">=", start)
+    .where("from", "<=", end)
+    .get()
+    .then(snapshot=>{
+       let evMap = {};
+       snapshot.forEach(doc=>{
+         let d = (doc.data().from || "").slice(0,10);
+         if(d) evMap[d] = true;
+       });
+       renderCalendar(evMap);
+    });
+}
+auth.onAuthStateChanged(user=>{
+  if(user) { fetchMonthlyEventsAndRender(); }
+});
+
+// ---- Események és Bevásárlólista ----
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
@@ -105,7 +189,8 @@ eventForm.onsubmit = function(e) {
   const from = document.getElementById("event-from").value;
   const to = document.getElementById("event-to").value;
   if (!title || !from || !to) return;
-  db.collection("events").add({ title, from, to, done: false });
+  db.collection("events").add({ title, from, to, done: false })
+    .then(fetchMonthlyEventsAndRender);
   eventForm.reset();
 };
 function loadEvents() {
@@ -124,9 +209,10 @@ function loadEvents() {
       `;
       li.querySelector("input").onchange = () => {
         doc.ref.update({ done: !done });
+        fetchMonthlyEventsAndRender();
       };
       li.querySelector(".delete-btn").onclick = () =>
-        askPinForDelete(() => doc.ref.delete());
+        askPinForDelete(() => { doc.ref.delete(); fetchMonthlyEventsAndRender(); });
       eventList.appendChild(li);
     });
   });
