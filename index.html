@@ -40,8 +40,6 @@
     <h2>Esemény hozzáadás</h2>
     <form id="event-form">
       <input type="text" id="event-title" placeholder="Esemény neve" required>
-      <input type="datetime-local" id="event-from" required>
-      <input type="datetime-local" id="event-to" required>
       <button type="submit">Hozzáadás</button>
     </form>
     <ul id="event-list"></ul>
@@ -152,8 +150,6 @@ function renderCalendar(evMap={}) {
   document.querySelectorAll('.calendar-cell').forEach(cell => {
     cell.onclick = () => {
       selectedDay = cell.getAttribute('data-date');
-      document.getElementById("event-from").value = selectedDay + "T09:00";
-      document.getElementById("event-to").value = selectedDay + "T10:00";
       document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
       cell.classList.add('selected');
     };
@@ -191,16 +187,14 @@ function fetchMonthlyEventsAndRender() {
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
-// Események LISTÁJA (NINCS dátum)
+// Események felvétel: csak cím, dátum = selectedDay
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
   e.preventDefault();
   const title = document.getElementById("event-title").value;
-  const from = document.getElementById("event-from").value;
-  const to = document.getElementById("event-to").value;
-  if (!title || !from || !to) return;
-  db.collection("events").add({ title, from, to, done: false })
+  if (!title) return;
+  db.collection("events").add({ title, from: selectedDay, done: false })
     .then(fetchMonthlyEventsAndRender);
   eventForm.reset();
 };
@@ -260,7 +254,6 @@ function loadItems() {
     });
   });
 }
-// Service worker regisztráció
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js")
     .then(reg => console.log("SW regisztrálva!", reg.scope))
