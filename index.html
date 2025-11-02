@@ -40,6 +40,8 @@
     <h2>Esemény hozzáadás</h2>
     <form id="event-form">
       <input type="text" id="event-title" placeholder="Esemény neve" required>
+      <input type="time" id="event-from-time" required>
+      <input type="time" id="event-to-time" required>
       <button type="submit">Hozzáadás</button>
     </form>
     <ul id="event-list"></ul>
@@ -187,28 +189,34 @@ function fetchMonthlyEventsAndRender() {
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
-// Események felvétel: csak cím, dátum = selectedDay
+// Események felvétel: név + tól-ig idő, dátum = selectedDay
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
   e.preventDefault();
   const title = document.getElementById("event-title").value;
-  if (!title) return;
-  db.collection("events").add({ title, from: selectedDay, done: false })
-    .then(fetchMonthlyEventsAndRender);
+  const fromTime = document.getElementById("event-from-time").value;
+  const toTime = document.getElementById("event-to-time").value;
+  if (!title || !fromTime || !toTime) return;
+  db.collection("events").add({
+    title,
+    from: selectedDay + "T" + fromTime,
+    to: selectedDay + "T" + toTime,
+    done: false
+  }).then(fetchMonthlyEventsAndRender);
   eventForm.reset();
 };
 function loadEvents() {
   db.collection("events").orderBy("from").onSnapshot(snap => {
     eventList.innerHTML = "";
     snap.forEach(doc => {
-      const { title, done } = doc.data();
+      const { title, from, to, done } = doc.data();
       const li = document.createElement("li");
       if (done) li.classList.add("done");
       li.innerHTML = `
         <label>
           <input type="checkbox" ${done ? "checked" : ""}>
-          ${title}
+          ${title} (${from.slice(11,16)} – ${to.slice(11,16)})
         </label>
         <button class="delete-btn" title="Törlés">🗑️</button>
       `;
