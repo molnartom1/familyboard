@@ -26,6 +26,8 @@
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
+  <!-- Naptár felett névnap kiírás -->
+  <div id="nevnap-notice" style="text-align:center; font-size:1.1em; font-weight:bold; color:#247BFF; margin-bottom:0.7em;"></div>
   <section class="calendar-card">
     <div class="calendar-header">
       <button id="prev-month" class="calendar-arrow">&#8592;</button>
@@ -56,14 +58,20 @@
     <ul id="item-list"></ul>
   </section>
 </div>
+<!-- NÉVNAPOK: külön nevnapok.js -->
+<script src="nevnapok.js"></script>
 <script>
+function nevnapKiiras() {
+  const today = new Date();
+  const key = (today.getMonth() + 1) + "-" + today.getDate();
+  const nev = typeof nevnapok !== "undefined" ? nevnapok[key] : [];
+  document.getElementById("nevnap-notice").textContent =
+    nev && nev.length ? `Ma ${nev.join(", ")} névnapja van!` : "";
+}
+nevnapKiiras();
+// App JS, mint eddig...
 const firebaseConfig = {
-  apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
-  authDomain: "mosas-nyilvantartas.firebaseapp.com",
-  projectId: "mosas-nyilvantartas",
-  storageBucket: "mosas-nyilvantartas.firebasestorage.app",
-  messagingSenderId: "38259241645",
-  appId: "1:38259241645:web:26070b1d0686def9f00c24"
+  /* ... */
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
