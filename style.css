@@ -110,6 +110,7 @@ li .delete-btn {
   box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
 }
+/* MODERN HAVI NAPTÁR KÁRTYA STÍLUSOK */
 .calendar-card {
   background: var(--card-bg);
   border-radius: 15px;
@@ -155,15 +156,18 @@ li .delete-btn {
   height: 7px;
   background: var(--primary);
   border-radius: 50%;
+  z-index: 2;
 }
 .calendar-count {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  font-size: 0.90em;
-  color: var(--primary);
-  font-weight: bold;
+  top: 22px;
+  right: 10px;
+  font-size: 0.77em;
+  color: var(--primary-dark);
+  font-weight: 400;
   pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
 }
 .calendar-header {
   display: flex;
