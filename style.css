@@ -57,6 +57,10 @@ input {
   color: var(--text);
   border: 1px solid var(--border);
 }
+input[type="time"] {
+  width: 120px;
+  flex: unset;
+}
 button {
   background: var(--primary);
   color: var(--text);
