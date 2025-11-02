@@ -26,7 +26,6 @@
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
-  <div id="nevnap-notice" style="text-align:center; font-size:1.1em; font-weight:bold; color:#247BFF; margin-bottom:0.7em;"></div>
   <section class="calendar-card">
     <div class="calendar-header">
       <button id="prev-month" class="calendar-arrow">&#8592;</button>
@@ -58,34 +57,13 @@
   </section>
 </div>
 <script>
-// Teljes magyar névnap-lista (365 napra, példaként néhány sor, igény esetén az egész év bemásolható)
-const nevnapok = {
-  "1-1": ["Fruzsina", "Újév"], "1-2": ["Ábel"], "1-3": ["Genovéva", "Benjámin"],
-  // ... minden nap: "hónap-nap": [név, név, ...]
-  "11-2": ["Achilles", "Csilla"],
-  "11-3": ["Győző"],
-  "12-31": ["Szilveszter"]
-  // Tedd be a teljes névnaplistát!
-};
-// Névnap felirat kiírása: online API preferált, offline fallback
-function nevnapWrite(nevArr) {
-  document.getElementById("nevnap-notice").textContent =
-    nevArr && nevArr.length
-      ? `Ma ${nevArr.join(", ")} névnapja van!`
-      : "";
-}
-fetch("https://api.nevnapok.eu/ma")
-  .then(r => r.json())
-  .then(data => nevnapWrite(data))
-  .catch(() => {
-    const today = new Date();
-    const key = (today.getMonth() + 1) + "-" + today.getDate();
-    nevnapWrite(nevnapok[key] || []);
-  });
-
-// App JS
 const firebaseConfig = {
-  apiKey: "AIza... (tedd ide a saját apiKey etc-adatokat)"
+  apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
+  authDomain: "mosas-nyilvantartas.firebaseapp.com",
+  projectId: "mosas-nyilvantartas",
+  storageBucket: "mosas-nyilvantartas.firebasestorage.app",
+  messagingSenderId: "38259241645",
+  appId: "1:38259241645:web:26070b1d0686def9f00c24"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
