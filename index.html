@@ -56,17 +56,6 @@
     <ul id="item-list"></ul>
   </section>
 </div>
-
-<!-- PIN törléshez modal -->
-<div id="delete-pin-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); align-items:center; justify-content:center;">
-  <div style="background:#212B3A; padding:2rem 1.4rem; border-radius:12px; box-shadow:0 8px 36px #0002; max-width:320px; margin:auto; text-align:center;">
-    <label for="delete-pin-input" style="display:block; color:#fff; margin-bottom:1rem;">Törléshez add meg a PIN-t:</label>
-    <input type="tel" id="delete-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" style="width:100%; text-align:center; background:#19223A; color:#fff; font-size:1.1em; border-radius:8px; border:1px solid #24314b; margin-bottom:1rem;">
-    <button id="delete-pin-confirm" style="width:100%; margin-bottom:0.5rem;">OK</button>
-    <button id="delete-pin-cancel" style="width:100%;">Mégse</button>
-    <div id="delete-pin-error" style="color:#E11D48; margin-top:1rem;"></div>
-  </div>
-</div>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
@@ -106,29 +95,20 @@ document.getElementById("logout-btn").onclick = function() {
   pinInput.value = "";
   firebase.auth().signOut();
 };
-// --- MODAL alap PIN kérés törléshez, csak számbillentyűvel ---
 function askPinForDelete(cb) {
-  const modal = document.getElementById('delete-pin-modal');
-  modal.style.display = 'flex';
-  const input = document.getElementById('delete-pin-input');
-  const error = document.getElementById('delete-pin-error');
-  input.value = "";
-  error.textContent = "";
-  input.focus();
-  document.getElementById('delete-pin-cancel').onclick = () => { modal.style.display = 'none'; };
-  document.getElementById('delete-pin-confirm').onclick = () => {
-    if (input.value === CORRECT_PIN) {
-      modal.style.display = 'none';
-      cb();
-    } else {
-      error.textContent = "Hibás PIN!";
-      input.value = "";
-      input.focus();
-    }
-  };
-  input.onkeyup = (e) => { if (e.key === "Enter") document.getElementById('delete-pin-confirm').click(); };
+  let pin = prompt("Törléshez add meg a PIN-t:");
+  if (pin === CORRECT_PIN) cb();
+  else alert("Hibás PIN!");
 }
-// ---- NAPTÁR funkciók, események stb. változatlanul ----
+function anonymousSignIn() {
+  auth.signInAnonymously().then(() => {
+    fetchMonthlyEventsAndRender();
+    loadEvents();
+    loadItems();
+  }).catch(error => {
+    pinError.innerText = "Firebase auth hiba: " + error.message;
+  });
+}
 const calendarGrid = document.getElementById("calendar-grid");
 const calendarTitle = document.getElementById("calendar-title");
 const prevMonthBtn = document.getElementById("prev-month");
