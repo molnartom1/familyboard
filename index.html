@@ -138,7 +138,7 @@ function renderCalendar(evMap={}) {
         dotsHTML += `<div class="calendar-dot" style="left:${28 + 18*i}%"></div>`;
       }
       if (eventi.length > 3) {
-        countHTML = `<span class="calendar-count">&#40;${eventi.length}&#41;</span>`;
+        countHTML = `<span class="calendar-count">(${eventi.length})</span>`;
       }
     }
     calendarGrid.innerHTML += `
@@ -189,7 +189,6 @@ function fetchMonthlyEventsAndRender() {
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
-// Események felvétel: név + tól-ig idő, dátum = selectedDay
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
