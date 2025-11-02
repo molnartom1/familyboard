@@ -46,6 +46,8 @@ function anonymousSignIn() {
   firebase.auth().signInAnonymously().then(() => {
     loadEvents();
     loadItems();
+  }).catch(error => {
+    pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
 
@@ -77,11 +79,11 @@ function loadEvents() {
         <button class="delete-btn" title="Törlés">🗑️</button>
       `;
       li.querySelector("input").onchange = () => {
-        db.ref("events/" + child.key).update({ done: !done });
+        child.ref.update({ done: !done });
       };
       li.querySelector(".delete-btn").onclick = () =>
         askPinForDelete(() =>
-          db.ref("events/" + child.key).remove()
+          child.ref.remove()
         );
       eventList.appendChild(li);
     });
@@ -114,11 +116,11 @@ function loadItems() {
         <button class="delete-btn" title="Törlés">🗑️</button>
       `;
       li.querySelector("input").onchange = () => {
-        db.ref("items/" + child.key).update({ done: !done });
+        child.ref.update({ done: !done });
       };
       li.querySelector(".delete-btn").onclick = () =>
         askPinForDelete(() =>
-          db.ref("items/" + child.key).remove()
+          child.ref.remove()
         );
       itemList.appendChild(li);
     });
