@@ -215,3 +215,13 @@ li .delete-btn {
   }
   header { flex-direction: column; gap: 0.5rem; }
 }
+@media (max-width: 600px) {
+  #login-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin-top: 0;
+  }
+}
