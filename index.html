@@ -6,7 +6,6 @@
   <title>Családi Naptár és Bevásárlólista</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
-  <!-- Firebase SDK-k -->
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
@@ -192,7 +191,7 @@ function fetchMonthlyEventsAndRender() {
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
-// Események és Bevásárlólista
+// Események LISTÁJA (NINCS dátum)
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
@@ -209,13 +208,13 @@ function loadEvents() {
   db.collection("events").orderBy("from").onSnapshot(snap => {
     eventList.innerHTML = "";
     snap.forEach(doc => {
-      const { title, from, to, done } = doc.data();
+      const { title, done } = doc.data();
       const li = document.createElement("li");
       if (done) li.classList.add("done");
       li.innerHTML = `
         <label>
           <input type="checkbox" ${done ? "checked" : ""}>
-          ${title} (${from.slice(5,16)} – ${to.slice(5,16)})
+          ${title}
         </label>
         <button class="delete-btn" title="Törlés">🗑️</button>
       `;
