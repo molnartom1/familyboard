@@ -107,7 +107,7 @@ function anonymousSignIn() {
     pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
-// ---- NAPTÁR: max 3 pötty, további eseményszám zárójelben, KISEBB ----
+// ---- NAPTÁR: max 3 pötty, több esetén zárójelbe szám (a pöttyök mögött/alatt!) ----
 const calendarGrid = document.getElementById("calendar-grid");
 const calendarTitle = document.getElementById("calendar-title");
 const prevMonthBtn = document.getElementById("prev-month");
@@ -144,8 +144,8 @@ function renderCalendar(evMap={}) {
     calendarGrid.innerHTML += `
       <div class="calendar-cell${extra}${selected}" data-date="${cellDate}" style="position:relative;">
         ${day}
-        ${countHTML}
         ${dotsHTML}
+        ${countHTML}
       </div>
     `;
   }
