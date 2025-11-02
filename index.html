@@ -15,8 +15,8 @@
 <body>
 <div id="login-section">
   <h2>PIN kódos belépés</h2>
-  <form>
-  <input type="tel" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (2025)">
+  <form id="pin-form" style="display:flex; flex-direction:column; gap:1rem;">
+    <input type="tel" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (2025)">
     <button id="pin-submit" type="button">Belépés</button>
   </form>
   <div class="error" id="pin-error"></div>
@@ -86,6 +86,9 @@ pinBtn.onclick = function() {
     pinError.innerText = "Hibás PIN!";
   }
 };
+pinInput.addEventListener("keyup", function(event) {
+  if (event.key === "Enter") pinBtn.click();
+});
 document.getElementById("logout-btn").onclick = function() {
   mainSection.style.display = "none";
   loginSection.style.display = "block";
