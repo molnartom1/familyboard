@@ -20,13 +20,11 @@
 </div>
 
 <div id="main-section" style="display:none;">
-
   <header>
     <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
     <button id="logout-btn">Kijelentkezés</button>
   </header>
 
-  <!-- MODERN Havi naptár kártya -->
   <section class="calendar-card">
     <div class="calendar-header">
       <button id="prev-month" class="calendar-arrow">&#8592;</button>
@@ -111,14 +109,15 @@ function anonymousSignIn() {
   });
 }
 
-// ---- MODERN HAVI NAPTÁR LOGIKA ----
+// ---- MODERN HAVI NAPTÁR: max 3 pötty, további események száma jobbra fent ----
 const calendarGrid = document.getElementById("calendar-grid");
 const calendarTitle = document.getElementById("calendar-title");
 const prevMonthBtn = document.getElementById("prev-month");
 const nextMonthBtn = document.getElementById("next-month");
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let selectedDay = new Date().toISOString().slice(0, 10); // alapértelmezett: ma
+let selectedDay = new Date().toISOString().slice(0, 10); // default
+
 function renderCalendar(evMap={}) {
   let d = new Date(currentYear, currentMonth);
   calendarTitle.textContent = d.toLocaleString('hu', { month: 'long' }) + " " + currentYear;
@@ -133,10 +132,23 @@ function renderCalendar(evMap={}) {
     if (cellDate === today.toISOString().slice(0, 10)) extra += " today";
     let selected = "";
     if (cellDate === selectedDay) selected += " selected";
+    let eventi = evMap[cellDate];
+    let dotsHTML = "";
+    let countHTML = "";
+    if (eventi && eventi.length > 0) {
+      const dotCount = Math.min(eventi.length, 3);
+      for(let i=0;i<dotCount;i++) {
+        dotsHTML += `<div class="calendar-dot" style="left:${28 + 18*i}%"></div>`;
+      }
+      if (eventi.length > 3) {
+        countHTML = `<span class="calendar-count">(${eventi.length})</span>`;
+      }
+    }
     calendarGrid.innerHTML += `
-      <div class="calendar-cell${extra}${selected}" data-date="${cellDate}">
+      <div class="calendar-cell${extra}${selected}" data-date="${cellDate}" style="position:relative;">
         ${day}
-        ${evMap[cellDate] ? '<div class="calendar-dot"></div>' : ''}
+        ${dotsHTML}
+        ${countHTML}
       </div>
     `;
   }
@@ -171,16 +183,20 @@ function fetchMonthlyEventsAndRender() {
        let evMap = {};
        snapshot.forEach(doc=>{
          let d = (doc.data().from || "").slice(0,10);
-         if(d) evMap[d] = true;
+         if(d) {
+           if(!evMap[d]) evMap[d] = [];
+           evMap[d].push(doc.data());
+         }
        });
        renderCalendar(evMap);
     });
 }
+
 auth.onAuthStateChanged(user=>{
   if(user) { fetchMonthlyEventsAndRender(); }
 });
 
-// ---- Események és Bevásárlólista ----
+// Események és Bevásárlólista
 const eventForm = document.getElementById("event-form");
 const eventList = document.getElementById("event-list");
 eventForm.onsubmit = function(e) {
