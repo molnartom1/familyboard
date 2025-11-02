@@ -1,7 +1,7 @@
 :root {
-  --primary: #247BFF;          /* fő kék */
-  --primary-light: #60A6FF;    /* világosabb kék */
-  --primary-dark: #174C96;     /* sötétebb kék */
+  --primary: #247BFF;
+  --primary-light: #60A6FF;
+  --primary-dark: #174C96;
   --background: #161C24;
   --card-bg: #212B3A;
   --card-shadow: 0 4px 16px rgba(36,123,255,0.10);
@@ -111,7 +111,80 @@ li .delete-btn {
   box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
 }
+
+/* MODERN HAVI NAPTÁR KÁRTYA STÍLUSOK */
+.calendar-card {
+  background: var(--card-bg);
+  border-radius: 15px;
+  box-shadow: var(--card-shadow);
+  padding: 1rem 0.5rem 1.5rem 0.5rem;
+  margin-bottom: 2rem;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 1rem;
+}
+.calendar-cell {
+  background: #1b2535;
+  color: var(--text);
+  min-height: 36px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1rem;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.calendar-cell:hover {
+  background: var(--primary-light);
+}
+.calendar-cell.selected {
+  background: var(--primary-dark);
+  color: #fff;
+  font-weight: bold;
+}
+.calendar-cell.today {
+  border: 2px solid var(--primary-light);
+}
+.calendar-dot {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 7px;
+  height: 7px;
+  background: var(--primary);
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .4rem;
+}
+.calendar-arrow {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  margin: 0 0.3rem;
+  padding: 0;
+}
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: .93em;
+  margin-bottom: .2rem;
+}
 @media (max-width: 600px) {
-  section { max-width: 97vw; padding: 0.6rem 0.2rem; }
+  section, .calendar-card { max-width: 97vw; padding: 0.6rem 0.2rem; }
   header { flex-direction: column; gap: 0.5rem; }
 }
