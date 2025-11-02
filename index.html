@@ -57,7 +57,6 @@
   </section>
 </div>
 <script>
-// --- Firebase & PIN ---
 const firebaseConfig = {
   apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
   authDomain: "mosas-nyilvantartas.firebaseapp.com",
@@ -107,7 +106,6 @@ function anonymousSignIn() {
     pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
-// ---- NAPTÁR: max 3 pötty, több esetén zárójelbe szám (a pöttyök mögött/alatt!) ----
 const calendarGrid = document.getElementById("calendar-grid");
 const calendarTitle = document.getElementById("calendar-title");
 const prevMonthBtn = document.getElementById("prev-month");
@@ -154,6 +152,7 @@ function renderCalendar(evMap={}) {
       selectedDay = cell.getAttribute('data-date');
       document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
       cell.classList.add('selected');
+      loadEvents(); // --- Csak a kiválasztott nap mutatása
     };
   });
 }
@@ -202,31 +201,39 @@ eventForm.onsubmit = function(e) {
     from: selectedDay + "T" + fromTime,
     to: selectedDay + "T" + toTime,
     done: false
-  }).then(fetchMonthlyEventsAndRender);
+  }).then(()=>{
+    fetchMonthlyEventsAndRender();
+    loadEvents();
+  });
   eventForm.reset();
 };
+// Csak a kiválasztott nap eseményei jelennek meg
 function loadEvents() {
-  db.collection("events").orderBy("from").onSnapshot(snap => {
-    eventList.innerHTML = "";
-    snap.forEach(doc => {
-      const { title, from, to, done } = doc.data();
-      const li = document.createElement("li");
-      if (done) li.classList.add("done");
-      li.innerHTML = `
-        <label>
-          <input type="checkbox" ${done ? "checked" : ""}>
-          ${title} (${from.slice(11,16)} – ${to.slice(11,16)})
-        </label>
-        <button class="delete-btn" title="Törlés">🗑️</button>
-      `;
-      li.querySelector("input").onchange = () => {
-        doc.ref.update({ done: !done });
-        fetchMonthlyEventsAndRender();
-      };
-      li.querySelector(".delete-btn").onclick = () =>
-        askPinForDelete(() => { doc.ref.delete(); fetchMonthlyEventsAndRender(); });
-      eventList.appendChild(li);
-    });
+  db.collection("events")
+    .where("from", ">=", selectedDay + "T00:00")
+    .where("from", "<=", selectedDay + "T23:59")
+    .orderBy("from")
+    .onSnapshot(snap => {
+      eventList.innerHTML = "";
+      snap.forEach(doc => {
+        const { title, from, to, done } = doc.data();
+        const li = document.createElement("li");
+        if (done) li.classList.add("done");
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" ${done ? "checked" : ""}>
+            ${title} (${from.slice(11,16)} – ${to.slice(11,16)})
+          </label>
+          <button class="delete-btn" title="Törlés">🗑️</button>
+        `;
+        li.querySelector("input").onchange = () => {
+          doc.ref.update({ done: !done });
+          fetchMonthlyEventsAndRender();
+        };
+        li.querySelector(".delete-btn").onclick = () =>
+          askPinForDelete(() => { doc.ref.delete(); fetchMonthlyEventsAndRender(); });
+        eventList.appendChild(li);
+      });
   });
 }
 const itemForm = document.getElementById("item-form");
