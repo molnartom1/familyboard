@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Családi Naptár és Bevásárlólista</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Firebase SDKk -->
+  <!-- Firebase SDK (core, auth, firestore) -->
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div id="login-section">
@@ -42,6 +42,125 @@
     <ul id="item-list"></ul>
   </section>
 </div>
-<script src="app.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
+  authDomain: "mosas-nyilvantartas.firebaseapp.com",
+  projectId: "mosas-nyilvantartas",
+  storageBucket: "mosas-nyilvantartas.firebasestorage.app",
+  messagingSenderId: "38259241645",
+  appId: "1:38259241645:web:26070b1d0686def9f00c24"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const CORRECT_PIN = "2025";
+// UI
+const loginSection = document.getElementById("login-section");
+const mainSection = document.getElementById("main-section");
+const pinInput = document.getElementById("pin-input");
+const pinBtn = document.getElementById("pin-submit");
+const pinError = document.getElementById("pin-error");
+pinBtn.onclick = function() {
+  if (pinInput.value === CORRECT_PIN) {
+    loginSection.style.display = "none";
+    mainSection.style.display = "block";
+    anonymousSignIn();
+  } else {
+    pinError.innerText = "Hibás PIN!";
+  }
+};
+document.getElementById("logout-btn").onclick = function() {
+  mainSection.style.display = "none";
+  loginSection.style.display = "block";
+  pinInput.value = "";
+  firebase.auth().signOut();
+};
+// PIN kérés törléshez
+function askPinForDelete(cb) {
+  let pin = prompt("Törléshez add meg a PIN-t:");
+  if (pin === CORRECT_PIN) cb();
+  else alert("Hibás PIN!");
+}
+// Auth
+function anonymousSignIn() {
+  auth.signInAnonymously().then(() => {
+    loadEvents();
+    loadItems();
+  }).catch(error => {
+    pinError.innerText = "Firebase auth hiba: " + error.message;
+  });
+}
+// Naptár Firestore kezelése
+const eventForm = document.getElementById("event-form");
+const eventList = document.getElementById("event-list");
+eventForm.onsubmit = function(e) {
+  e.preventDefault();
+  const title = document.getElementById("event-title").value;
+  const from = document.getElementById("event-from").value;
+  const to = document.getElementById("event-to").value;
+  if (!title || !from || !to) return;
+  db.collection("events").add({ title, from, to, done: false });
+  eventForm.reset();
+};
+// Real-time szinkronizáció Firestore onSnapshot-tal eseményekhez
+function loadEvents() {
+  db.collection("events").orderBy("from").onSnapshot(snap => {
+    eventList.innerHTML = "";
+    snap.forEach(doc => {
+      const { title, from, to, done } = doc.data();
+      const li = document.createElement("li");
+      if (done) li.classList.add("done");
+      li.innerHTML = `
+        <label>
+          <input type="checkbox" ${done ? "checked" : ""}>
+          ${title} (${from.slice(5,16)} – ${to.slice(5,16)})
+        </label>
+        <button class="delete-btn" title="Törlés">🗑️</button>
+      `;
+      li.querySelector("input").onchange = () => {
+        doc.ref.update({ done: !done });
+      };
+      li.querySelector(".delete-btn").onclick = () =>
+        askPinForDelete(() => doc.ref.delete());
+      eventList.appendChild(li);
+    });
+  });
+}
+// Bevásárlólista Firestore kezelése
+const itemForm = document.getElementById("item-form");
+const itemList = document.getElementById("item-list");
+itemForm.onsubmit = function(e) {
+  e.preventDefault();
+  const title = document.getElementById("item-title").value;
+  if (!title) return;
+  db.collection("items").add({ title, done: false });
+  itemForm.reset();
+};
+// Real-time szinkronizáció Firestore onSnapshot-tal bevásárlólistához
+function loadItems() {
+  db.collection("items").onSnapshot(snap => {
+    itemList.innerHTML = "";
+    snap.forEach(doc => {
+      const { title, done } = doc.data();
+      const li = document.createElement("li");
+      if (done) li.classList.add("done");
+      li.innerHTML = `
+        <label>
+          <input type="checkbox" ${done ? "checked" : ""}>
+          ${title}
+        </label>
+        <button class="delete-btn" title="Törlés">🗑️</button>
+      `;
+      li.querySelector("input").onchange = () => {
+        doc.ref.update({ done: !done });
+      };
+      li.querySelector(".delete-btn").onclick = () =>
+        askPinForDelete(() => doc.ref.delete());
+      itemList.appendChild(li);
+    });
+  });
+}
+</script>
 </body>
 </html>
