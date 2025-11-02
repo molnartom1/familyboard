@@ -113,6 +113,7 @@ li .delete-btn {
   border-radius: 18px;
   box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
+  text-align: center;
 }
 /* MODERN HAVI NAPTÁR KÁRTYA STÍLUSOK */
 .calendar-card {
@@ -197,7 +198,7 @@ li .delete-btn {
   font-size: .93em;
   margin-bottom: .2rem;
 }
-/* Mobilos középrehelyezés minden modulra */
+/* Mobilos középrehelyezés minden modulra + PIN szöveg is középre */
 @media (max-width: 600px) {
   #main-section {
     display: flex;
@@ -219,6 +220,7 @@ li .delete-btn {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    text-align: center;
     min-height: 100vh;
     margin-top: 0;
   }
