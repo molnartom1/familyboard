@@ -16,7 +16,7 @@
 <div id="login-section">
   <h2>PIN kódos belépés</h2>
   <form>
-    <input type="password" id="pin-input" placeholder="PIN (2025)">
+  <input type="tel" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (2025)">
     <button id="pin-submit" type="button">Belépés</button>
   </form>
   <div class="error" id="pin-error"></div>
