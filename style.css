@@ -197,7 +197,21 @@ li .delete-btn {
   font-size: .93em;
   margin-bottom: .2rem;
 }
+/* Mobilos középrehelyezés */
 @media (max-width: 600px) {
-  section, .calendar-card { max-width: 97vw; padding: 0.6rem 0.2rem; }
+  #main-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  section, .calendar-card { 
+    max-width: 97vw; 
+    padding: 0.6rem 0.2rem; 
+    margin-left: 0;
+    margin-right: 0;
+    align-self: center;
+  }
   header { flex-direction: column; gap: 0.5rem; }
 }
