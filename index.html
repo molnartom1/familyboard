@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Családi Naptár és Bevásárlólista</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
   <!-- Firebase SDK (core, auth, firestore) -->
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
@@ -54,6 +55,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+// Firestore offline támogatás
+db.enablePersistence().catch(function(err) {
+  console.log("Offline támogatás hibája:", err.code);
+});
 const CORRECT_PIN = "2025";
 // UI
 const loginSection = document.getElementById("login-section");
@@ -103,7 +108,6 @@ eventForm.onsubmit = function(e) {
   db.collection("events").add({ title, from, to, done: false });
   eventForm.reset();
 };
-// Real-time szinkronizáció Firestore onSnapshot-tal eseményekhez
 function loadEvents() {
   db.collection("events").orderBy("from").onSnapshot(snap => {
     eventList.innerHTML = "";
@@ -127,7 +131,6 @@ function loadEvents() {
     });
   });
 }
-// Bevásárlólista Firestore kezelése
 const itemForm = document.getElementById("item-form");
 const itemList = document.getElementById("item-list");
 itemForm.onsubmit = function(e) {
@@ -137,7 +140,6 @@ itemForm.onsubmit = function(e) {
   db.collection("items").add({ title, done: false });
   itemForm.reset();
 };
-// Real-time szinkronizáció Firestore onSnapshot-tal bevásárlólistához
 function loadItems() {
   db.collection("items").onSnapshot(snap => {
     itemList.innerHTML = "";
@@ -160,6 +162,12 @@ function loadItems() {
       itemList.appendChild(li);
     });
   });
+}
+// Service worker regisztráció
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(reg => console.log("SW regisztrálva!", reg.scope))
+    .catch(err => console.log("SW hiba:", err));
 }
 </script>
 </body>
