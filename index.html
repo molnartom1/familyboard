@@ -1,360 +1,297 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Családi Naptár és Bevásárlólista</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" sizes="192x192" href="icon-192.png" />
-  <meta name="theme-color" content="#247BFF" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="icon-192.png">
+  <meta name="theme-color" content="#247BFF">
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
-
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function (OneSignal) {
-      await OneSignal.init({
-        appId: "2b31e6a9-343b-453b-b208-b4111f1dcc84",
-        notifyButton: { enable: true }
-      });
-    });
-  </script>
+  <script src="nevnapok.js"></script>
 </head>
 <body>
-  <div id="login-section">
-    <h2>PIN kódos belépés</h2>
-    <form id="pin-form" style="display:flex; flex-direction:column; gap:1rem;">
-      <input type="tel" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (2025)" />
-      <button id="pin-submit" type="button">Belépés</button>
+<div id="login-section">
+  <h2>PIN kódos belépés</h2>
+  <form id="pin-form" style="display:flex; flex-direction:column; gap:1rem;">
+    <input type="tel" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (2025)">
+    <button id="pin-submit" type="button">Belépés</button>
+  </form>
+  <div class="error" id="pin-error"></div>
+</div>
+<div id="main-section" style="display:none;">
+  <header>
+    <h1>🗓️ Családi Naptár | 🛒 Bevásárlólista</h1>
+    <button id="logout-btn">Kijelentkezés</button>
+  </header>
+  <section class="calendar-card">
+    <div id="nevnap-box" style="font-weight:bold;font-size:1.2em;margin-bottom:1em;"></div>
+    <div class="calendar-header">
+      <button id="prev-month" class="calendar-arrow">←</button>
+      <span id="calendar-title"></span>
+      <button id="next-month" class="calendar-arrow">→</button>
+    </div>
+    <div class="calendar-days">
+      <span>H</span><span>K</span><span>Sz</span><span>Cs</span><span>P</span><span>Szo</span><span>V</span>
+    </div>
+    <div id="calendar-grid" class="calendar-grid"></div>
+  </section>
+  <section id="calendar">
+    <h2>Esemény hozzáadás</h2>
+    <form id="event-form">
+      <input type="text" id="event-title" placeholder="Esemény neve" required>
+      <input type="time" id="event-from-time" required>
+      <input type="time" id="event-to-time" required>
+      <button type="submit">Hozzáadás</button>
     </form>
-    <div class="error" id="pin-error"></div>
-  </div>
-
-  <div id="main-section" style="display:none;">
-    <header>
-      <h1> FamilyBoard - Családi Naptár </h1>
-      <button id="logout-btn">Kijelentkezés</button>
-    </header>
-
-    <section class="calendar-card">
-      <div id="nevnap-box" style="font-weight:bold; font-size:1.2em; margin-bottom:1em;"></div>
-
-      <div class="calendar-header">
-        <button id="prev-month" class="calendar-arrow">←</button>
-        <span id="calendar-title"></span>
-        <button id="next-month" class="calendar-arrow">→</button>
+    <ul id="event-list"></ul>
+  </section>
+  <section id="shopping">
+    <h2>Bevásárlólista</h2>
+    <form id="item-form">
+      <input type="text" id="item-title" placeholder="Tétel neve" required>
+      <button type="submit">Hozzáadás</button>
+    </form>
+    <ul id="item-list"></ul>
+  </section>
+</div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
+  authDomain: "mosas-nyilvantartas.firebaseapp.com",
+  projectId: "mosas-nyilvantartas",
+  storageBucket: "mosas-nyilvantartas.firebasestorage.app",
+  messagingSenderId: "38259241645",
+  appId: "1:38259241645:web:26070b1d0686def9f00c24"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence().catch(function(err) {
+  console.log("Offline támogatás hibája:", err.code);
+});
+const CORRECT_PIN = "2025";
+const loginSection = document.getElementById("login-section");
+const mainSection = document.getElementById("main-section");
+const pinInput = document.getElementById("pin-input");
+const pinBtn = document.getElementById("pin-submit");
+const pinError = document.getElementById("pin-error");
+pinBtn.onclick = function() {
+  if (pinInput.value === CORRECT_PIN) {
+    loginSection.style.display = "none";
+    mainSection.style.display = "block";
+    anonymousSignIn();
+  } else {
+    pinError.innerText = "Hibás PIN!";
+  }
+};
+pinInput.addEventListener("keyup", function(event) {
+  if (event.key === "Enter") pinBtn.click();
+});
+document.getElementById("logout-btn").onclick = function() {
+  mainSection.style.display = "none";
+  loginSection.style.display = "block";
+  pinInput.value = "";
+  firebase.auth().signOut();
+};
+function askPinForDelete(cb) {
+  let pin = prompt("Törléshez add meg a PIN-t:");
+  if (pin === CORRECT_PIN) cb();
+  else alert("Hibás PIN!");
+}
+function anonymousSignIn() {
+  auth.signInAnonymously().then(() => {
+    fetchMonthlyEventsAndRender();
+    loadEvents();
+    loadItems();
+  }).catch(error => {
+    pinError.innerText = "Firebase auth hiba: " + error.message;
+  });
+}
+const calendarGrid = document.getElementById("calendar-grid");
+const calendarTitle = document.getElementById("calendar-title");
+const prevMonthBtn = document.getElementById("prev-month");
+const nextMonthBtn = document.getElementById("next-month");
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let selectedDay = new Date().toISOString().slice(0, 10);
+function renderCalendar(evMap={}) {
+  let d = new Date(currentYear, currentMonth);
+  calendarTitle.textContent = d.toLocaleString('hu', { month: 'long' }) + " " + currentYear;
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay() || 7;
+  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+  calendarGrid.innerHTML = "";
+  for(let i=1; i<firstDay; i++) { calendarGrid.innerHTML += `<div></div>`; }
+  for(let day=1; day<=daysInMonth; day++) {
+    const cellDate = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const today = new Date();
+    let extra = "";
+    if (cellDate === today.toISOString().slice(0, 10)) extra += " today";
+    let selected = "";
+    if (cellDate === selectedDay) selected += " selected";
+    let eventi = evMap[cellDate];
+    let dotsHTML = "";
+    let countHTML = "";
+    if (eventi && eventi.length > 0) {
+      const dotCount = Math.min(eventi.length, 3);
+      for(let i=0;i<dotCount;i++) {
+        dotsHTML += `<div class="calendar-dot" style="left:${28 + 18*i}%"></div>`;
+      }
+      if (eventi.length > 3) {
+        countHTML = `<span class="calendar-count">(${eventi.length})</span>`;
+      }
+    }
+    calendarGrid.innerHTML += `
+      <div class="calendar-cell${extra}${selected}" data-date="${cellDate}" style="position:relative;">
+        ${day}
+        ${dotsHTML}
+        ${countHTML}
       </div>
-      <div class="calendar-days">
-        <span>H</span><span>K</span><span>Sz</span><span>Cs</span><span>P</span><span>Szo</span><span>V</span>
-      </div>
-      <div id="calendar-grid" class="calendar-grid"></div>
-    </section>
-
-    <section id="calendar">
-      <h2>🗓️ Esemény hozzáadás</h2>
-      <form id="event-form">
-        <input type="text" id="event-title" placeholder="Esemény neve" required />
-        <input type="time" id="event-from-time" required />
-        <input type="time" id="event-to-time" required />
-        <button type="submit">Hozzáadás</button>
-      </form>
-      <ul id="event-list"></ul>
-    </section>
-
-    <section id="shopping">
-      <h2>🛒 Bevásárlólista</h2>
-      <form id="item-form">
-        <input type="text" id="item-title" placeholder="Tétel neve" required />
-        <button type="submit">Hozzáadás</button>
-      </form>
-      <ul id="item-list"></ul>
-    </section>
-  </div>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAeoxtOe5Cleasm3KdeSHP9WDR3PkU-N1I",
-      authDomain: "mosas-nyilvantartas.firebaseapp.com",
-      projectId: "mosas-nyilvantartas",
-      storageBucket: "mosas-nyilvantartas.firebasestorage.app",
-      messagingSenderId: "38259241645",
-      appId: "1:38259241645:web:26070b1d0686def9f00c24"
+    `;
+  }
+  document.querySelectorAll('.calendar-cell').forEach(cell => {
+    cell.onclick = () => {
+      selectedDay = cell.getAttribute('data-date');
+      document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
+      cell.classList.add('selected');
+      loadEvents();
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    db.enablePersistence().catch(function (err) {
-      console.log("Offline támogatás hibája:", err.code);
+  });
+}
+prevMonthBtn.onclick = () => {
+  currentMonth--;
+  if(currentMonth<0) { currentMonth=11; currentYear--; }
+  fetchMonthlyEventsAndRender();
+};
+nextMonthBtn.onclick = () => {
+  currentMonth++;
+  if(currentMonth>11) { currentMonth=0; currentYear++; }
+  fetchMonthlyEventsAndRender();
+};
+function fetchMonthlyEventsAndRender() {
+  const start = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01T00:00`;
+  const end = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(new Date(currentYear, currentMonth+1, 0).getDate()).padStart(2,'0')}T23:59`;
+  db.collection("events")
+    .where("from", ">=", start)
+    .where("from", "<=", end)
+    .get()
+    .then(snapshot=>{
+       let evMap = {};
+       snapshot.forEach(doc=>{
+         let d = (doc.data().from || "").slice(0,10);
+         if(d) {
+           if(!evMap[d]) evMap[d] = [];
+           evMap[d].push(doc.data());
+         }
+       });
+       renderCalendar(evMap);
     });
-
-    const CORRECT_PIN = "2025";
-    const loginSection = document.getElementById("login-section");
-    const mainSection = document.getElementById("main-section");
-    const pinInput = document.getElementById("pin-input");
-    const pinBtn = document.getElementById("pin-submit");
-    const pinError = document.getElementById("pin-error");
-
-    pinBtn.onclick = function () {
-      if (pinInput.value === CORRECT_PIN) {
-        loginSection.style.display = "none";
-        mainSection.style.display = "block";
-        anonymousSignIn();
-      } else {
-        pinError.innerText = "Hibás PIN!";
-      }
-    };
-    pinInput.addEventListener("keyup", function (event) {
-      if (event.key === "Enter") pinBtn.click();
-    });
-    document.getElementById("logout-btn").onclick = function () {
-      mainSection.style.display = "none";
-      loginSection.style.display = "block";
-      pinInput.value = "";
-      firebase.auth().signOut();
-    };
-
-    function askPinForDelete(cb) {
-      let pin = prompt("Törléshez add meg a PIN-t:");
-      if (pin === CORRECT_PIN) cb();
-      else alert("Hibás PIN!");
-    }
-
-    function anonymousSignIn() {
-      auth.signInAnonymously().then(() => {
-        fetchMonthlyEventsAndRender();
-        loadEvents();
-        loadItems();
-      }).catch(error => {
-        pinError.innerText = "Firebase auth hiba: " + error.message;
-      });
-    }
-
-    const calendarGrid = document.getElementById("calendar-grid");
-    const calendarTitle = document.getElementById("calendar-title");
-    const prevMonthBtn = document.getElementById("prev-month");
-    const nextMonthBtn = document.getElementById("next-month");
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
-    let selectedDay = new Date().toISOString().slice(0, 10);
-
-    function renderCalendar(evMap = {}) {
-      let d = new Date(currentYear, currentMonth);
-      calendarTitle.textContent = d.toLocaleString('hu', { month: 'long' }) + " " + currentYear;
-      const firstDay = new Date(currentYear, currentMonth, 1).getDay() || 7;
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      calendarGrid.innerHTML = "";
-      for (let i = 1; i < firstDay; i++) {
-        calendarGrid.innerHTML += `<div></div>`;
-      }
-      for (let day = 1; day <= daysInMonth; day++) {
-        const cellDate =
-          currentYear + "-" + String(currentMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
-        const today = new Date();
-        let extra = "";
-        if (cellDate === today.toISOString().slice(0, 10)) extra += " today";
-        let selected = "";
-        if (cellDate === selectedDay) selected += " selected";
-        let eventi = evMap[cellDate];
-        let dotsHTML = "";
-        let countHTML = "";
-        if (eventi && eventi.length > 0) {
-          const dotCount = Math.min(eventi.length, 3);
-          for (let i = 0; i < dotCount; i++) {
-            dotsHTML += `<div class="calendar-dot" style="left:${28 + 18 * i}%"></div>`;
-          }
-          if (eventi.length > 3) {
-            countHTML = `<span class="calendar-count">(${eventi.length})</span>`;
-          }
-        }
-        calendarGrid.innerHTML += `
-          <div class="calendar-cell${extra}${selected}" data-date="${cellDate}" style="position:relative;">
-            ${day}
-            ${dotsHTML}
-            ${countHTML}
-          </div>
-        `;
-      }
-      document.querySelectorAll(".calendar-cell").forEach((cell) => {
-        cell.onclick = () => {
-          selectedDay = cell.getAttribute("data-date");
-          document.querySelectorAll(".calendar-cell").forEach((c) => c.classList.remove("selected"));
-          cell.classList.add("selected");
-          loadEvents();
-        };
-      });
-    }
-
-    prevMonthBtn.onclick = () => {
-      currentMonth--;
-      if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      }
-      fetchMonthlyEventsAndRender();
-    };
-    nextMonthBtn.onclick = () => {
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
-      fetchMonthlyEventsAndRender();
-    };
-
-    function fetchMonthlyEventsAndRender() {
-      const start = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01T00:00`;
-      const end = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(
-        new Date(currentYear, currentMonth + 1, 0).getDate()
-      ).padStart(2, "0")}T23:59`;
-      db.collection("events")
-        .where("from", ">=", start)
-        .where("from", "<=", end)
-        .get()
-        .then((snapshot) => {
-          let evMap = {};
-          snapshot.forEach((doc) => {
-            let d = (doc.data().from || "").slice(0, 10);
-            if (d) {
-              if (!evMap[d]) evMap[d] = [];
-              evMap[d].push(doc.data());
-            }
-          });
-          renderCalendar(evMap);
-        });
-    }
-
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchMonthlyEventsAndRender();
-      }
-    });
-
-    const eventForm = document.getElementById("event-form");
-    const eventList = document.getElementById("event-list");
-
-    eventForm.onsubmit = function (e) {
-      e.preventDefault();
-      const title = document.getElementById("event-title").value;
-      const fromTime = document.getElementById("event-from-time").value;
-      const toTime = document.getElementById("event-to-time").value;
-      if (!title || !fromTime || !toTime) return;
-
-      db.collection("events")
-        .add({
-          title,
-          from: selectedDay + "T" + fromTime,
-          to: selectedDay + "T" + toTime,
-          done: false,
-        })
-        .then(() => {
-          fetchMonthlyEventsAndRender();
-          loadEvents();
-
-          // Push értesítés küldése az eseményről:
-          sendPushNotification("Új esemény került hozzáadásra: " + title);
-        });
-      eventForm.reset();
-    };
-
-    function loadEvents() {
-      db.collection("events")
-        .where("from", ">=", selectedDay + "T00:00")
-        .where("from", "<=", selectedDay + "T23:59")
-        .orderBy("from")
-        .onSnapshot((snap) => {
-          eventList.innerHTML = "";
-          snap.forEach((doc) => {
-            const { title, from, to, done } = doc.data();
-            const li = document.createElement("li");
-            if (done) li.classList.add("done");
-            li.innerHTML = `
-            <label>
-              <input type="checkbox" ${done ? "checked" : ""}>
-              ${title} (${from.slice(11, 16)} – ${to.slice(11, 16)})
-            </label>
-            <button class="delete-btn" title="Törlés">🗑️</button>
-          `;
-            li.querySelector("input").onchange = () => {
-              doc.ref.update({ done: !done });
-              fetchMonthlyEventsAndRender();
-            };
-            li.querySelector(".delete-btn").onclick = () =>
-              askPinForDelete(() => {
-                doc.ref.delete();
-                fetchMonthlyEventsAndRender();
-              });
-            eventList.appendChild(li);
-          });
-        });
-    }
-
-    const itemForm = document.getElementById("item-form");
-    const itemList = document.getElementById("item-list");
-
-    itemForm.onsubmit = function (e) {
-      e.preventDefault();
-      const title = document.getElementById("item-title").value;
-      if (!title) return;
-
-      db.collection("items").add({ title, done: false });
-      itemForm.reset();
-    };
-
-    function loadItems() {
-      db.collection("items").onSnapshot((snap) => {
-        itemList.innerHTML = "";
-        snap.forEach((doc) => {
-          const { title, done } = doc.data();
-          const li = document.createElement("li");
-          if (done) li.classList.add("done");
-          li.innerHTML = `
+}
+auth.onAuthStateChanged(user=>{
+  if(user) { fetchMonthlyEventsAndRender(); }
+});
+const eventForm = document.getElementById("event-form");
+const eventList = document.getElementById("event-list");
+eventForm.onsubmit = function(e) {
+  e.preventDefault();
+  const title = document.getElementById("event-title").value;
+  const fromTime = document.getElementById("event-from-time").value;
+  const toTime = document.getElementById("event-to-time").value;
+  if (!title || !fromTime || !toTime) return;
+  db.collection("events").add({
+    title,
+    from: selectedDay + "T" + fromTime,
+    to: selectedDay + "T" + toTime,
+    done: false
+  }).then(()=>{
+    fetchMonthlyEventsAndRender();
+    loadEvents();
+  });
+  eventForm.reset();
+};
+function loadEvents() {
+  db.collection("events")
+    .where("from", ">=", selectedDay + "T00:00")
+    .where("from", "<=", selectedDay + "T23:59")
+    .orderBy("from")
+    .onSnapshot(snap => {
+      eventList.innerHTML = "";
+      snap.forEach(doc => {
+        const { title, from, to, done } = doc.data();
+        const li = document.createElement("li");
+        if (done) li.classList.add("done");
+        li.innerHTML = `
           <label>
             <input type="checkbox" ${done ? "checked" : ""}>
-            ${title}
+            ${title} (${from.slice(11,16)} – ${to.slice(11,16)})
           </label>
           <button class="delete-btn" title="Törlés">🗑️</button>
         `;
-          li.querySelector("input").onchange = () => {
-            doc.ref.update({ done: !done });
-          };
-          li.querySelector(".delete-btn").onclick = () => askPinForDelete(() => doc.ref.delete());
-          itemList.appendChild(li);
-        });
+        li.querySelector("input").onchange = () => {
+          doc.ref.update({ done: !done });
+          fetchMonthlyEventsAndRender();
+        };
+        li.querySelector(".delete-btn").onclick = () =>
+          askPinForDelete(() => { doc.ref.delete(); fetchMonthlyEventsAndRender(); });
+        eventList.appendChild(li);
       });
-    }
+  });
+}
+const itemForm = document.getElementById("item-form");
+const itemList = document.getElementById("item-list");
+itemForm.onsubmit = function(e) {
+  e.preventDefault();
+  const title = document.getElementById("item-title").value;
+  if (!title) return;
+  db.collection("items").add({ title, done: false });
+  itemForm.reset();
+};
+function loadItems() {
+  db.collection("items").onSnapshot(snap => {
+    itemList.innerHTML = "";
+    snap.forEach(doc => {
+      const { title, done } = doc.data();
+      const li = document.createElement("li");
+      if (done) li.classList.add("done");
+      li.innerHTML = `
+        <label>
+          <input type="checkbox" ${done ? "checked" : ""}>
+          ${title}
+        </label>
+        <button class="delete-btn" title="Törlés">🗑️</button>
+      `;
+      li.querySelector("input").onchange = () => {
+        doc.ref.update({ done: !done });
+      };
+      li.querySelector(".delete-btn").onclick = () =>
+        askPinForDelete(() => doc.ref.delete());
+      itemList.appendChild(li);
+    });
+  });
+}
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(reg => console.log("SW regisztrálva!", reg.scope))
+    .catch(err => console.log("SW hiba:", err));
+}
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("sw.js")
-        .then((reg) => console.log("SW regisztrálva!", reg.scope))
-        .catch((err) => console.log("SW hiba:", err));
-    }
-
-    // Push értesítés küldés REST API-val (ez a rész nem biztonságos kliens oldalon, backend ajánlott)
-    const ONESIGNAL_APP_ID = "2b31e6a9-343b-453b-b208-b4111f1dcc84";
-    const ONESIGNAL_REST_API_KEY = "A_TE_REST_API_KULCSOD";
-
-    function sendPushNotification(message) {
-      fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json;charset=utf-8",
-          Authorization: "Basic " + ONESIGNAL_REST_API_KEY,
-        },
-        body: JSON.stringify({
-          app_id: ONESIGNAL_APP_ID,
-          included_segments: ["Subscribed Users"],
-          contents: { en: message },
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => console.log("Push értesítés elküldve:", data))
-        .catch((error) => console.error("Push hiba:", error));
-    }
-  </script>
+// Névnap megjelenítés minden nap
+function maiNevnap() {
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const key = month + '-' + day;
+  if (typeof nevnapok !== "undefined" && nevnapok[key]) {
+    document.getElementById('nevnap-box').textContent =
+      "Ma " + nevnapok[key].join(', ') + " napja van!";
+  } else {
+    document.getElementById('nevnap-box').textContent = "Ma nincs hivatalos névnap.";
+  }
+}
+maiNevnap();
+</script>
 </body>
 </html>
