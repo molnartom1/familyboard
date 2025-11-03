@@ -244,3 +244,30 @@ li .delete-btn {
     margin-top: 0;
   }
 }
+/* ---- Egységes felső gombok ---- */
+.top-buttons {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.top-buttons a,
+.top-buttons button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  font-size: 1rem;
+  min-width: 140px;
+  text-align: center;
+}
+
+.top-buttons a:hover,
+.top-buttons button:hover {
+  background: var(--primary-dark);
+}
