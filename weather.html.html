@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="auto">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Időjárás – Mobilbarát előrejelzés + Esőradar</title>
+<meta name="theme-color" content="#0f172a" />
+<meta name="color-scheme" content="light dark" />
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827cc; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee;
+    --ok:#34d399; --warn:#f59e0b; --danger:#f87171; --ring:#22d3ee55; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f1f5f9; --card:#ffffffea; --muted:#475569; --text:#0f172a; --accent:#0891b2;
+      --ok:#059669; --warn:#d97706; --danger:#ef4444; --ring:#06b6d455;
+    }
+    :root[data-force="dark"]{ --bg:#0f172a; --card:#111827cc; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee; --ok:#34d399; --warn:#f59e0b; --danger:#f87171; --ring:#22d3ee55; }
+  }
+  :root[data-force="light"]{ --bg:#f1f5f9; --card:#ffffffea; --muted:#475569; --text:#0f172a; --accent:#0891B2; --ok:#059669; --warn:#d97706; --danger:#ef4444; --ring:#06b6d455; }
+  :root[data-force="dark"]{ --bg:#0f172a; --card:#111827cc; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee; --ok:#34d399; --warn:#f59e0b; --danger:#f87171; --ring:#22d3ee55; }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  html, body { overflow-x: hidden; }
+
+  body{
+    margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,"Noto Sans";
+    background: radial-gradient(1200px 800px at 10% -10%, #22d3ee22, transparent 70%), radial-gradient(1000px 700px at 110% -10%, #a78bfa22, transparent 70%), var(--bg);
+    color:var(--text); display:flex; justify-content:center; padding:clamp(12px,3vw,28px);
+  }
+
+  .app{ width:100%; max-width:1100px; display:grid; gap:14px; }
+  .app, .grid, .card { min-width:0; }
+
+  header{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .brand{ display:flex; gap:12px; align-items:center; }
+  .logo{ width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,var(--accent),#a78bfa); display:grid; place-items:center; color:#001018; font-weight:800; box-shadow:var(--shadow) }
+  h1{ margin:0; font-size:clamp(1.1rem,3.3vw,1.6rem) }
+  .muted{ color:var(--muted) } .small{ font-size:.92rem }
+
+  .toolbar{ display:flex; gap:8px; flex-wrap:wrap; width:100%; align-items:center; position:relative; }
+  .search{ position:relative; flex:1 1 260px; display:flex; gap:8px; align-items:center; background:var(--card); padding:8px; border-radius:14px; box-shadow:var(--shadow); border:1px solid transparent; }
+  .search:focus-within{ outline:2px solid var(--ring); border-color:transparent }
+  .search input{ flex:1; border:0; background:transparent; color:var(--text); font-size:16px; padding:10px; outline:none; }
+  .btn{ border:0; padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; transition:.2s transform ease,.2s background ease,.2s opacity ease; background:var(--accent); color:#001018; box-shadow:var(--shadow) }
+  .btn:hover{ transform:translateY(-1px) }
+  .btn.secondary{ background:#334155; color:#e5e7eb } @media (prefers-color-scheme: light){ .btn.secondary{ background:#e2e8f0; color:#0f172a } }
+
+  /* Autocomplete */
+  .ac{ position:absolute; left:8px; right:8px; top:100%; margin-top:6px; background:var(--card); border:1px solid #ffffff22; border-radius:12px; box-shadow:var(--shadow); overflow:hidden; z-index:50; display:none; }
+  .ac.show{ display:block; }
+  .ac-item{ padding:10px 12px; display:flex; justify-content:space-between; gap:12px; cursor:pointer; }
+  .ac-item:hover{ background:#ffffff10; }
+  .ac-name{ font-weight:700 }
+  .ac-sub{ color:var(--muted); font-size:.92rem }
+
+  .grid{ display:grid; gap:14px; grid-template-columns:1fr }
+  @media (min-width:820px){ .grid{ grid-template-columns:1.1fr .9fr } }
+
+  .card{ background:var(--card); border:1px solid #ffffff10; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px }
+  .current{ display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center }
+  .bigtemp{ font-size:clamp(2.6rem,7vw,4.3rem); font-weight:800; letter-spacing:-1px }
+  .desc{ font-size:1rem; text-transform:capitalize }
+  .meta{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px }
+  .chip{ background:#ffffff10; padding:8px 10px; border-radius:999px; font-size:.92rem; display:flex; gap:8px; align-items:center }
+
+  /* órás sáv */
+  .scroll{ display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:6px; scroll-snap-type:x mandatory; width:100%; max-width:100%; -webkit-overflow-scrolling:touch }
+  .tile{ flex:0 0 auto; min-width:clamp(86px, 28vw, 120px); scroll-snap-align:start; background:#ffffff10; border:1px solid #ffffff14; border-radius:14px; padding:10px; display:grid; gap:6px; place-items:center }
+
+  .daygrid{ display:grid; gap:10px }
+  .dayrow{ display:grid; grid-template-columns:1fr auto auto auto; gap:10px; align-items:center; padding:10px 12px; border-radius:12px; background:#ffffff10; border:1px solid #ffffff14 }
+
+  .unit-toggle,.theme-toggle{ background:#ffffff10; border:1px solid #ffffff14; border-radius:12px; padding:4px; display:flex; gap:4px; align-items:center }
+  .seg{ padding:6px 10px; border-radius:8px; cursor:pointer; user-select:none }
+  .seg.active{ background:var(--accent); color:#001018; font-weight:700 }
+  .badge{ font-size:.8rem; padding:.2rem .5rem; border-radius:999px; background:#ffffff10; border:1px solid #ffffff22 }
+
+  /* SZÍNES ikonok */
+  .wc-sun{ color:#fbbf24 } .wc-night{ color:#93c5fd } .wc-partly{ color:#fde68a }
+  .wc-cloud{ color:#9ca3af } .wc-mist{ color:#94a3b8 } .wc-rain{ color:#60a5fa }
+  .wc-shower{ color:#38bdf8 } .wc-snow{ color:#e5e7eb } .wc-thunder{ color:#f59e0b } .wc-wind{ color:#a78bfa }
+  @media (prefers-color-scheme: light){ .wc-cloud{ color:#64748b } .wc-mist{ color:#64748b } .wc-snow{ color:#2563eb } }
+
+  /* RADAR – CANVAS alapú, rács nélkül */
+  .map-card{ padding:0; overflow:hidden }
+  .map-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 12px 0 12px }
+  .map{ position:relative; height:420px; background:#0b1220; touch-action:pinch-zoom pan-x pan-y; user-select:none; overflow:hidden; border-radius:0 0 var(--radius) var(--radius) }
+  canvas.mapc{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .map-controls{ position:absolute; right:10px; top:10px; display:grid; gap:6px; z-index:10 }
+  .ctrl{ background:#ffffff18; border:1px solid #ffffff30; backdrop-filter:blur(6px); padding:8px; border-radius:10px; cursor:pointer; font-weight:800 }
+  .timeline{ position:absolute; left:50%; bottom:12px; transform:translateX(-50%); display:flex; gap:6px; align-items:center; background:#00000040; border:1px solid #ffffff30; padding:6px 10px; border-radius:999px; backdrop-filter:blur(6px) }
+  .dot{ width:8px; height:8px; border-radius:999px; background:#ffffff55 }
+  .dot.active{ background:var(--accent) }
+  .time-label{ color:#fff; font-size:.9rem; margin-left:6px }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-units="metric">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">⛅</div>
+      <div>
+        <h1>Időjárás előrejelzés</h1>
+        <div class="muted small">Mobilbarát ikonokkal, esőradarral</div>
+      </div>
+    </div>
+    <div class="row" style="display:flex; gap:8px; flex-wrap:wrap">
+      <div class="theme-toggle" role="tablist" aria-label="Téma">
+        <button class="seg" id="themeAuto" role="tab">Auto</button>
+        <button class="seg" id="themeLight" role="tab">Világos</button>
+        <button class="seg" id="themeDark" role="tab">Sötét</button>
+      </div>
+      <div class="unit-toggle" role="tablist" aria-label="Mértékegység">
+        <button class="seg active" id="unitC" role="tab" aria-selected="true">°C</button>
+        <button class="seg" id="unitF" role="tab" aria-selected="false">°F</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label class="search" for="q">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 20.3 17.2 16.5a8 8 0 1 0-1 1L20.3 21zM5 11a6 6 0 1 1 12 0A6 6 0 0 1 5 11"/></svg>
+      <input id="q" type="search" placeholder="Város/település keresése (pl. Budapest, Pécs, Debrecen)" autocomplete="off" />
+      <button class="btn" id="searchBtn" type="button">Keresés</button>
+      <div class="ac" id="ac"></div>
+    </label>
+    <button class="btn secondary" id="geoBtn" type="button" title="Saját helyzetem">Saját helyzetem</button>
+  </div>
+
+  <section class="grid" id="content">
+    <article class="card">
+      <div class="current" id="current">
+        <div id="currentIcon" aria-hidden="true"></div>
+        <div>
+          <div class="locline" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <strong id="place">—</strong>
+            <span class="badge" id="tz">—</span>
+            <span class="badge" id="updated">Frissítés…</span>
+          </div>
+          <div class="bigtemp" id="temp">—°</div>
+          <div class="desc" id="desc">—</div>
+          <div class="meta" id="meta">
+            <div class="chip"><span class="ico">🌡</span><span>Hőérzet: <b id="feels">—</b></span></div>
+            <div class="chip"><span class="ico">💧</span><span>Páratartalom: <b id="humidity">—</b></span></div>
+            <div class="chip"><span class="ico">🌬</span><span>Szél: <b id="wind">—</b></span></div>
+            <div class="chip"><span class="ico">📈</span><span>Nyomás: <b id="pressure">—</b></span></div>
+            <div class="chip"><span class="ico">🌅</span><span>Napkelte: <b id="sunrise">—</b></span></div>
+            <div class="chip"><span class="ico">🌇</span><span>Napnyugta: <b id="sunset">—</b></span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="row" style="display:flex; justify-content:space-between; margin-bottom:8px">
+        <h3 style="margin:0">Következő órák</h3>
+        <span class="muted small" id="hourlyRange">—</span>
+      </div>
+      <div class="scroll" id="hourly"><div class="muted small" style="padding:8px">Betöltés…</div></div>
+    </article>
+
+    <article class="card" style="grid-column:1/-1">
+      <div class="row" style="display:flex; justify-content:space-between; margin-bottom:8px">
+        <h3 style="margin:0">7 napos előrejelzés</h3>
+        <span class="muted small" id="dailyRange">—</span>
+      </div>
+      <div class="daygrid" id="daily"><div class="muted small" style="padding:8px">Betöltés…</div></div>
+    </article>
+
+    <!-- RADAR (CANVAS) -->
+    <article class="card map-card" style="grid-column:1/-1">
+      <div class="map-toolbar">
+        <h3 style="margin:0">Esőradar (RainViewer + OSM)</h3>
+        <div class="row" style="display:flex; gap:8px">
+          <button class="btn secondary" id="radarPlay">Lejátszás</button>
+          <button class="btn secondary" id="radarPause">Szünet</button>
+          <button class="btn secondary" id="radarNow">Most</button>
+        </div>
+      </div>
+      <div class="map" id="map">
+        <canvas id="baseCanvas" class="mapc"></canvas>
+        <canvas id="radarCanvas" class="mapc" style="opacity:.78"></canvas>
+        <div class="map-controls">
+          <button class="ctrl" id="zoomIn" aria-label="Nagyítás">＋</button>
+          <button class="ctrl" id="zoomOut" aria-label="Kicsinyítés">－</button>
+          <button class="ctrl" id="locate" aria-label="Ugrás a helyzetemre">📍</button>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="row" id="dots" style="display:flex; gap:6px"></div>
+          <div class="time-label" id="timeLabel">—</div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <footer>
+    Adatok: Open-Meteo • Radar: RainViewer • Térkép: OpenStreetMap
+  </footer>
+</div>
+
+<!-- Ikon sprite -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-clear-day" viewBox="0 0 24 24"><path fill="currentColor" d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12m0-16h1v3h-1zM12 19h1v3h-1zM1 12h3v1H1zM20 12h3v1h-3zM4.6 4.6l.7-.7l2.1 2.1l-.7.7zM16.6 16.6l.7-.7l2.1 2.1l-.7.7zM16.6 6.7l2.1-2.1l.7.7l-2.1 2.1zM4.6 18.4l2.1-2.1l.7.7l-2.1 2.1z"/></symbol>
+  <symbol id="i-clear-night" viewBox="0 0 24 24"><path fill="currentColor" d="M11.5 22q-3.8 0-6.4-2.6T2.5 13Q2.9 8 7 6q.2-.1.4.1t0 .4q-.4 1-.4 2.1q0 3.2 2.3 5.5T15 16.5q1.1 0 2.1-.4q.3-.1.5.1q.2.2.1.4q-1.1 4.1-5.1 5.4q-.6.1-1.1.1Z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path fill="currentColor" d="M7 19q-2.1 0-3.55-1.45T2 14q0-1.95 1.275-3.4T6.5 9.05Q7.55 6.3 9.913 4.65T15 3q3.35 0 5.675 2.162T23 10q0 2.925-2.037 4.963T16 17H7Z"/></symbol>
+  <symbol id="i-partly" viewBox="0 0 24 24"><path fill="currentColor" d="M8 18q-1.65 0-2.825-1.175T4 14q0-1.65 1.175-2.825T8 10q.95 0 1.8.4t1.45 1.1q.8-1 2-1.5T17 9q1.85 0 3.175 1.325T21.5 13q0 1.45-.9 2.575T18.4 17H8Z"/><path d="M6 5l1 2l2 1l-2 1l-1 2l-1-2L3 8l2-1z" fill="currentColor"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path fill="currentColor" d="M6 14q-1.65 0-2.825-1.175T2 10q0-1.65 1.175-2.825T6 6q.95 0 1.8.4t1.45 1.1q.8-1 2-1.5T15 5q2.5 0 4.25 1.75T21 11q0 1.25-.487 2.35T18.9 15H6Zm2 7l2-3m4 3l2-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-shower" viewBox="0 0 24 24"><path fill="currentColor" d="M6 14q-1.65 0-2.825-1.175T2 10q0-1.65 1.175-2.825T6 6q.95 0 1.8.4t1.45 1.1q.8-1 2-1.5T15 5q2.5 0 4.25 1.75T21 11q0 1.25-.487 2.35T18.9 15H6Z"/><path d="M7 18l.8-1.2M10 20l.8-1.2M13 18l.8-1.2M16 20l.8-1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-thunder" viewBox="0 0 24 24"><path fill="currentColor" d="M6 14q-1.65 0-2.825-1.175T2 10q0-1.65 1.175-2.825T6 6q.95 0 1.8.4t1.45 1.1q.8-1 2-1.5T15 5q2.5 0 4.25 1.75T21 11q0 1.25-.487 2.35T18.9 15H6Z"/><path d="M12 15l4-6h-3l1-4l-4 6h3z" fill="currentColor"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path fill="currentColor" d="M6 14q-1.65 0-2.825-1.175T2 10q0-1.65 1.175-2.825T6 6q.95 0 1.8.4t1.45 1.1q.8-1 2-1.5T15 5q2.5 0 4.25 1.75T21 11q0 1.25-.487 2.35T18.9 15H6Z"/><path d="M12 18v-6m0 0l2.5 1.5M12 12l-2.5 1.5M12 18l2.5 1.5M12 18l-2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-mist" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9h18v1H3zm2 3h14v1H5zm-1 3h16v1H4z"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path fill="currentColor" d="M3 10h10a2 2 0 1 0-2-2h-1a3 3 0 1 1 3 3H3zm0 4h15a2 2 0 1 1-2 2h-1a3 3 0 1 0 3-3H3z"/></symbol>
+</svg>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  /* ===== Alap fetch más dolgokra (radar JSON stb.) ===== */
+  async function xfetch(url, opts){
+    opts = opts || {};
+    const base = Object.assign({mode:'cors', referrerPolicy:'no-referrer', credentials:'omit'}, opts);
+    try{
+      const res = await fetch(url, base);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res;
+    }catch(e){
+      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res2 = await fetch(proxy, {mode:'cors', referrerPolicy:'no-referrer', credentials:'omit'});
+      if(!res2.ok) throw new Error('Proxy HTTP '+res2.status);
+      return res2;
+    }
+  }
+
+  /* ===== Kifejezetten JSON letöltés erős proxy-lánccal (Open-Meteo) ===== */
+  async function xfetchJSONStrong(url){
+    const headers = {'Accept':'application/json'};
+    // 1) közvetlen
+    try{
+      const r = await fetch(url, {mode:'cors', referrerPolicy:'no-referrer', credentials:'omit', headers});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const ct = r.headers.get('content-type')||'';
+      const body = ct.includes('application/json') ? await r.json() : JSON.parse(await r.text());
+      return body;
+    }catch(e1){
+      // 2) isomorphic-git CORS proxy
+      try{
+        const r2 = await fetch('https://cors.isomorphic-git.org/'+url, {mode:'cors', referrerPolicy:'no-referrer', credentials:'omit', headers});
+        if(!r2.ok) throw new Error('HTTP '+r2.status);
+        const ct2 = r2.headers.get('content-type')||'';
+        const body2 = ct2.includes('application/json') ? await r2.json() : JSON.parse(await r2.text());
+        return body2;
+      }catch(e2){
+        // 3) allorigins raw
+        const u3 = 'https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+        const r3 = await fetch(u3, {mode:'cors', referrerPolicy:'no-referrer', credentials:'omit', headers});
+        if(!r3.ok) throw new Error('HTTP '+r3.status);
+        const ct3 = r3.headers.get('content-type')||'';
+        const body3 = ct3.includes('application/json') ? await r3.json() : JSON.parse(await r3.text());
+        return body3;
+      }
+    }
+  }
+
+  const state = {
+    units:'metric', theme:'auto',
+    place:null, data:null, tz:'Europe/Budapest',
+    acResults:[],
+    map:{ z:6, lon:19.0408, lat:47.4979, dragging:false, last:null },
+    radar:{ frames:[], idx:0, playing:true, timer:null }
+  };
+
+  /* ===== Téma ===== */
+  function applyTheme(){
+    const root=document.documentElement;
+    root.removeAttribute('data-force');
+    if(state.theme==='light') root.setAttribute('data-force','light');
+    if(state.theme==='dark')  root.setAttribute('data-force','dark');
+    localStorage.setItem('weather:theme', state.theme);
+    $('#themeAuto').classList.toggle('active', state.theme==='auto');
+    $('#themeLight').classList.toggle('active', state.theme==='light');
+    $('#themeDark').classList.toggle('active', state.theme==='dark');
+  }
+  (function(){
+    const savedTheme = localStorage.getItem('weather:theme'); if(savedTheme) state.theme = savedTheme; applyTheme();
+    $('#themeAuto').onclick = ()=>{ state.theme='auto'; applyTheme(); };
+    $('#themeLight').onclick = ()=>{ state.theme='light'; applyTheme(); };
+    $('#themeDark').onclick  = ()=>{ state.theme='dark';  applyTheme(); };
+  })();
+
+  /* ===== Egységek ===== */
+  $('#unitC').onclick = ()=> setUnits('metric');
+  $('#unitF').onclick = ()=> setUnits('imperial');
+  function setUnits(u, silent){
+    state.units=u;
+    $('#unitC').classList.toggle('active', u==='metric');
+    $('#unitF').classList.toggle('active', u==='imperial');
+    if(!silent && state.place) fetchAll();
+    persist();
+  }
+
+  /* ===== Keresés + geokódoló (Open-Meteo) ===== */
+  const q = $('#q'), ac = $('#ac');
+  $('#searchBtn').onclick = onSearch;
+  q.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); if(state.acResults.length){ pickPlace(0); } else { onSearch(); } }
+    if(e.key==='Escape'){ ac.classList.remove('show'); }
+  });
+  q.addEventListener('input', debounce(onType, 220));
+  q.addEventListener('focus', ()=>{ if(state.acResults.length) ac.classList.add('show'); });
+  $('#geoBtn').onclick = useGeolocation;
+
+  const saved = localStorage.getItem('weather:last');
+  if(saved){
+    try{
+      const last = JSON.parse(saved);
+      if(last.units) setUnits(last.units, true);
+      if(last.place){ state.place = last.place; fetchAll(); mapCenter(last.place.lat,last.place.lon,7); }
+      else { useGeolocation(); setTimeout(fallbackIfNoPlace, 2500); }
+    }catch(_){
+      useGeolocation(); setTimeout(fallbackIfNoPlace, 2500);
+    }
+  }else{
+    useGeolocation(); setTimeout(fallbackIfNoPlace, 2500);
+  }
+
+  function fallbackIfNoPlace(){
+    if(!state.place){
+      state.place = { name:'Budapest', country:'HU', admin1:'Budapest',
+        lat:47.4979, lon:19.0402, timezone:'Europe/Budapest' };
+      persist();
+      fetchAll();
+      mapCenter(state.place.lat, state.place.lon, 8);
+    }
+  }
+
+  function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+  function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  function flag(cc){ if(!cc) return '🌍'; const u=String(cc).toUpperCase(); return String.fromCodePoint(0x1F1E6+u.charCodeAt(0)-65, 0x1F1E6+u.charCodeAt(1)-65); }
+
+  async function onType(){
+    const term = q.value.trim();
+    if(term.length<2){ ac.classList.remove('show'); return; }
+    try{
+      const geo = await xfetchJSONStrong('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(term)+'&count=5&language=hu&format=json');
+      const list = (geo && geo.results) ? geo.results.map(r=>({ name:r.name, admin1:r.admin1||'', country:r.country||r.country_code||'', cc:r.country_code||'', lat:r.latitude, lon:r.longitude, timezone:r.timezone })) : [];
+      state.acResults = list;
+      ac.innerHTML = list.map((r,i)=>`
+        <div class="ac-item" data-i="${i}">
+          <div><div class="ac-name">${r.cc?flag(r.cc):'🌍'} ${escapeHTML(r.name)}</div>
+          <div class="ac-sub">${escapeHTML(([r.admin1, r.country].filter(Boolean).join(', ')))}</div></div>
+          <div class="ac-sub">lat ${r.lat.toFixed(2)}, lon ${r.lon.toFixed(2)}</div>
+        </div>`).join('');
+      $$('#ac .ac-item').forEach(el=> el.onclick = ()=> pickPlace(Number(el.dataset.i)));
+      ac.classList.add('show');
+    }catch{ state.acResults=[]; ac.classList.remove('show'); }
+  }
+  function pickPlace(i){
+    const r = state.acResults[i]; if(!r) return;
+    state.place = { name:r.name, country:r.cc||r.country, admin1:r.admin1||'', lat:r.lat, lon:r.lon, timezone:r.timezone };
+    q.value = r.name + (r.admin1?(', '+r.admin1):'') + (r.country?(', '+r.country):'');
+    ac.classList.remove('show'); persist(); fetchAll(); mapCenter(r.lat, r.lon, 8);
+  }
+  async function onSearch(){
+    const termRaw = q.value.trim(); if(!termRaw) return shake(q);
+    try{
+      const geo = await xfetchJSONStrong('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(termRaw)+'&count=1&language=hu&format=json');
+      if(!geo || !geo.results || !geo.results.length){ toast('Nem található ilyen település.','warn'); return; }
+      const r = geo.results[0];
+      state.place = { name:r.name, country:r.country_code||r.country, admin1:r.admin1||'', lat:r.latitude, lon:r.longitude, timezone:r.timezone };
+      persist(); fetchAll(); mapCenter(state.place.lat, state.place.lon, 8);
+    }catch{ toast('Keresés közben hiba történt.','err'); }
+  }
+  async function useGeolocation(){
+    if(!navigator.geolocation){ toast('A böngésző nem támogatja a helymeghatározást.','warn'); return; }
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      try{
+        const j = await xfetchJSONStrong(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=hu&format=json`);
+        const g = (j && j.results && j.results[0]) || {};
+        state.place = { name:g.name||'Jelenlegi hely', country:g.country_code||g.country||'', admin1:g.admin1||'', lat, lon, timezone:g.timezone||'auto' };
+      }catch{
+        state.place = { name:'Jelenlegi hely', country:'', admin1:'', lat, lon, timezone:'auto' };
+      }
+      persist(); fetchAll(); mapCenter(lat, lon, 8);
+    }, ()=> toast('Nem sikerült lekérni a helyzeted.','warn'), { enableHighAccuracy:false, timeout:10000, maximumAge:60000 });
+  }
+
+  /* ===== Open-Meteo előrejelzés – robusztus, proxy-lánccal + fallback ===== */
+  async function fetchAll(){
+    if(!state.place){ toast('Nincs hely kiválasztva.','warn'); return; }
+    skeleton(true);
+    const { lat, lon } = state.place;
+    const timezone = state.place.timezone || 'auto';
+    const tempUnit = state.units==='metric'?'celsius':'fahrenheit';
+    const windUnit = state.units==='metric'?'kmh':'mph';
+
+    const paramsFull = {
+      latitude: lat, longitude: lon, timeformat:'iso8601', timezone,
+      temperature_unit: tempUnit, wind_speed_unit: windUnit, forecast_days: 7, past_days: 0,
+      models: 'best_match',
+      current: [
+        'temperature_2m','relative_humidity_2m','apparent_temperature',
+        'is_day','weather_code','surface_pressure','wind_speed_10m'
+      ].join(','),
+      hourly: [
+        'temperature_2m','weather_code','wind_speed_10m',
+        'precipitation','precipitation_probability','rain','showers','snowfall'
+      ].join(','),
+      daily: [
+        'weather_code','temperature_2m_max','temperature_2m_min',
+        'sunrise','sunset','precipitation_sum','precipitation_probability_max','wind_speed_10m_max'
+      ].join(',')
+    };
+
+    try{
+      let data = await fetchOpenMeteo(paramsFull);
+
+      const hourlyMissing = !data.hourly || !Array.isArray(data.hourly.time) || !data.hourly.time.length;
+      const dailyMissing  = !data.daily  || !Array.isArray(data.daily.time)  || !data.daily.time.length;
+
+      if(hourlyMissing || dailyMissing){
+        const paramsLight = {
+          latitude: lat, longitude: lon, timeformat:'iso8601', timezone,
+          temperature_unit: tempUnit, wind_speed_unit: windUnit, forecast_days: 7, past_days: 0,
+          models: 'best_match',
+          current: 'temperature_2m,apparent_temperature,is_day,weather_code,wind_speed_10m,surface_pressure,relative_humidity_2m',
+          hourly: 'temperature_2m,weather_code,wind_speed_10m,precipitation',
+          daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,wind_speed_10m_max'
+        };
+        console.warn('[Open-Meteo] Fallback paraméterekre váltok…');
+        data = await fetchOpenMeteo(paramsLight);
+      }
+
+      state.data = data;
+      state.tz = data.timezone || timezone;
+      renderAll();
+      skeleton(false);
+      toast('Frissítve.','ok',1200);
+    }catch(err){
+      console.error('Open-Meteo hívás hiba:', err);
+      skeleton(false);
+      $('#hourly').innerHTML = '<div class="muted small" style="padding:8px">Nincs órás adat.</div>';
+      $('#daily').innerHTML  = '<div class="muted small" style="padding:8px">Nincs napi adat.</div>';
+      toast('Nem sikerült lekérni az előrejelzést (Open-Meteo).','err');
+    }
+  }
+
+  async function fetchOpenMeteo(params){
+    const url = 'https://api.open-meteo.com/v1/forecast?' + new URLSearchParams(params).toString();
+    return await xfetchJSONStrong(url);
+  }
+
+  function renderAll(){
+    const place = state.place, data = state.data; if(!place||!data) return;
+
+    $('#place').textContent = [place.name, place.admin1, place.country].filter(Boolean).join(', ');
+    $('#tz').textContent = (data.timezone || place.timezone || 'helyi idő').replace('_',' ');
+    $('#updated').textContent = 'Most frissítve';
+
+    const c = data.current || {};
+    const d0 = data.daily || {};
+    const isDay = !!c.is_day;
+
+    $('#currentIcon').innerHTML = svgUse(pickIcon(c.weather_code, isDay), 92, iconClass(c.weather_code, isDay));
+    $('#temp').textContent = safeRound(c.temperature_2m) + '°';
+    $('#desc').textContent = describeWMO(c.weather_code);
+    $('#feels').textContent = safeRound(c.apparent_temperature) + '°';
+    $('#humidity').textContent = (c.relative_humidity_2m!=null?c.relative_humidity_2m+'%':'—');
+    $('#wind').textContent = safeRound(c.wind_speed_10m) + (state.units==='metric'?' km/h':' mph');
+    $('#pressure').textContent = safeRound(c.surface_pressure) + ' hPa';
+    if(d0.sunrise && d0.sunrise.length){ $('#sunrise').textContent = formatTime(d0.sunrise[0]); }
+    if(d0.sunset && d0.sunset.length){ $('#sunset').textContent  = formatTime(d0.sunset[0]); }
+
+    // ÓRÁS – 24 elem
+    const H = data.hourly || {};
+    if(H.time && H.time.length){
+      const nowIso = (data.current && data.current.time) ? data.current.time : new Date().toISOString();
+      let start = nearestIndex(H.time, nowIso);
+      let end = Math.min(start + 24, H.time.length);
+      if(end <= start){ start = Math.max(0, H.time.length-24); end = H.time.length; }
+      const tiles = [];
+      for(let i=start; i<end; i++){
+        const ht = H.time[i];
+        tiles.push(tileHour({
+          time: ht,
+          temp: safeRound(H.temperature_2m && H.temperature_2m[i]),
+          pop: (H.precipitation_probability && H.precipitation_probability[i] != null) ? H.precipitation_probability[i] : null,
+          wcode: H.weather_code ? H.weather_code[i] : null,
+          isDay: (d0.sunrise && d0.sunrise[0] && d0.sunset && d0.sunset[0]) ? guessIsDay(ht, d0.sunrise[0], d0.sunset[0]) : true,
+          wind: safeRound(H.wind_speed_10m && H.wind_speed_10m[i])
+        }));
+      }
+      $('#hourly').innerHTML = tiles.join('') || '<div class="muted small" style="padding:8px">Nincs órás adat.</div>';
+      $('#hourlyRange').textContent = (H.time[start]?formatTime(H.time[start]):'—') + ' – ' + (H.time[end-1]?formatTime(H.time[end-1]):'—');
+    }else{
+      $('#hourly').innerHTML = '<div class="muted small" style="padding:8px">Nincs órás adat.</div>';
+    }
+
+    // NAPI – 7 nap
+    if(d0.time && d0.time.length){
+      const rows = [];
+      for(let j=0;j<d0.time.length;j++){
+        rows.push(rowDay({
+          date: d0.time[j],
+          wcode: d0.weather_code ? d0.weather_code[j] : null,
+          tmin: safeRound(d0.temperature_2m_min && d0.temperature_2m_min[j]),
+          tmax: safeRound(d0.temperature_2m_max && d0.temperature_2m_max[j]),
+          pop: (d0.precipitation_probability_max && d0.precipitation_probability_max[j]!=null) ? d0.precipitation_probability_max[j] : null,
+          wind: safeRound(d0.wind_speed_10m_max && d0.wind_speed_10m_max[j])
+        }));
+      }
+      $('#daily').innerHTML = rows.join('');
+      $('#dailyRange').textContent = niceDate(d0.time[0]) + ' – ' + niceDate(d0.time[d0.time.length-1]);
+    }else{
+      $('#daily').innerHTML = '<div class="muted small" style="padding:8px">Nincs napi adat.</div>';
+    }
+
+    // radar újrarajzolása
+    resizeCanvases(); drawBase(); drawRadar();
+  }
+
+  /* ===== UI helpers ===== */
+  function skeleton(active){
+    $('#temp').textContent = active ? '—°' : $('#temp').textContent;
+    $('#updated').textContent = active ? 'Frissítés…' : 'Most frissítve';
+  }
+  function toast(msg, kind='ok', ms=1800){
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.position='fixed'; el.style.left='50%'; el.style.bottom='22px'; el.style.transform='translateX(-50%)';
+    el.style.background= kind==='ok'? '#10b981' : kind==='warn'? '#f59e0b' : '#ef4444';
+    el.style.color='#001018'; el.style.padding='10px 14px'; el.style.borderRadius='999px'; el.style.boxShadow='0 10px 30px rgba(0,0,0,.35)'; el.style.fontWeight='700';
+    el.style.zIndex=9999; el.style.opacity='0'; el.style.transition='opacity .2s ease';
+    document.body.appendChild(el); requestAnimationFrame(()=> el.style.opacity='1');
+    setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),200); }, ms);
+  }
+  function shake(input){
+    const el = input.closest('.search');
+    el.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:260});
+    input.focus();
+  }
+  function svgUse(id,size,cls){ if(size===void 0) size=48; if(!cls) cls=''; return '<svg class="'+cls+'" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" aria-hidden="true"><use href="#'+id+'"/></svg>'; }
+  function safeRound(x){ const n=Number(x); return isFinite(n)?Math.round(n):'—'; }
+  function pad(n){ return n<10?'0'+n:n; }
+  function formatTime(s){ const d=new Date(s); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function niceDate(s){ const d=new Date(s); return d.toLocaleDateString('hu-HU',{month:'short',day:'2-digit',weekday:'short'}); }
+  function nearestIndex(arr, iso){ const now=+new Date(iso); let i=-1; for(let k=0;k<arr.length;k++){ if(+new Date(arr[k])>=now){ i=k; break; } } return i<0?0:i; }
+  function guessIsDay(iso, sr, ss){ const t=+new Date(iso), a=+new Date(sr), b=+new Date(ss); return t>=a && t<b; }
+  function tileHour(o){
+    const label = new Date(o.time).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});
+    const popLine = (o.pop!=null)?('Csap.: '+o.pop+'%'):'\u00A0';
+    const windUnit = (state.units==='metric'?'km/h':'mph');
+    return '<div class="tile" title="'+label+'">'+
+      svgUse(pickIcon(o.wcode, o.isDay),40, iconClass(o.wcode,o.isDay))+
+      '<div><strong>'+o.temp+'°</strong></div>'+
+      '<div class="muted small">'+label+'</div>'+
+      '<div class="muted small">'+popLine+'</div>'+
+      '<div class="muted small">Szél: '+o.wind+' '+windUnit+'</div>'+
+    '</div>';
+  }
+  function rowDay(o){
+    const name = new Date(o.date).toLocaleDateString('hu-HU',{weekday:'long'});
+    const windUnit = (state.units==='metric'?'km/h':'mph');
+    const popTxt = (o.pop!=null)?('Csap.: '+o.pop+'%'):'—';
+    return '<div class="dayrow"><div class="row" style="display:flex; gap:12px">'+
+      svgUse(pickIcon(o.wcode,true),26, iconClass(o.wcode,true))+
+      '<div><strong>'+name+'</strong><div class="muted small">'+new Date(o.date).toLocaleDateString('hu-HU',{month:'long',day:'2-digit'})+'</div></div>'+
+      '</div><div class="muted small">'+popTxt+
+      '</div><div class="row" style="display:flex; align-items:center; gap:6px"><strong>'+o.tmax+'°</strong> <span class="muted">/</span> <span class="muted">'+o.tmin+'°</span></div>'+
+      '<div class="muted small">Szél: '+o.wind+' '+windUnit+'</div></div>';
+  }
+
+  function describeWMO(code){
+    const m = {0:'Derült',1:'Többnyire derült',2:'Változó felhőzet',3:'Borult',45:'Köd',48:'Zúzmarás köd',
+      51:'Gyenge szitálás',53:'Mérsékelt szitálás',55:'Erős szitálás',56:'Gyenge ónos szitálás',57:'Erős ónos szitálás',
+      61:'Gyenge eső',63:'Eső',65:'Erős eső',66:'Gyenge ónos eső',67:'Erős ónos eső',71:'Gyenge havazás',73:'Havazás',
+      75:'Erős havazás',77:'Hódara',80:'Záporok',81:'Erős zápor',82:'Felhőszakadás',85:'Hózápor',86:'Erős hózápor',
+      95:'Zivatar',96:'Zivatar jéggel',99:'Erős zivatar jéggel'}; return (m[code]||'—');
+  }
+  function persist(){ localStorage.setItem('weather:last', JSON.stringify({ units:state.units, place:state.place })); }
+
+  /* ===== Ikon választás ===== */
+  function pickIcon(wmo, isDay){
+    if(wmo==null) return 'i-cloud';
+    if(wmo===0) return isDay?'i-clear-day':'i-clear-night';
+    if(wmo===1||wmo===2) return 'i-partly';
+    if(wmo===3) return 'i-cloud';
+    if(wmo===45||wmo===48) return 'i-mist';
+    if(wmo===51||wmo===53||wmo===55||wmo===56||wmo===57) return 'i-shower';
+    if(wmo===61||wmo===63||wmo===65||wmo===66||wmo===67||wmo===80||wmo===81||wmo===82) return 'i-rain';
+    if(wmo===71||wmo===73||wmo===75||wmo===77||wmo===85||wmo===86) return 'i-snow';
+    if(wmo===95||wmo===96||wmo===99) return 'i-thunder';
+    return 'i-cloud';
+  }
+  function iconClass(wmo,isDay){
+    if(wmo==null) return 'wc-cloud';
+    if(wmo===0) return isDay?'wc-sun':'wc-night';
+    if(wmo===1||wmo===2) return 'wc-partly';
+    if(wmo===3) return 'wc-cloud';
+    if(wmo===45||wmo===48) return 'wc-mist';
+    if(wmo===51||wmo===53||wmo===55||wmo===56||wmo===57) return 'wc-shower';
+    if(wmo===61||wmo===63||wmo===65||wmo===66||wmo===67||wmo===80||wmo===81||wmo===82) return 'wc-rain';
+    if(wmo===71||wmo===73||wmo===75||wmo===77||wmo===85||wmo===86) return 'wc-snow';
+    if(wmo===95||wmo===96||wmo===99) return 'wc-thunder';
+    return 'wc-cloud';
+  }
+
+  /* ======== MAP + RADAR (CANVAS) – rács nélkül ======== */
+  const mapEl = $('#map'), baseCanvas = $('#baseCanvas'), radarCanvas = $('#radarCanvas'), dotsEl = $('#dots'), timeLabel = $('#timeLabel');
+  const bctx = baseCanvas.getContext('2d'), rctx = radarCanvas.getContext('2d');
+  const TILE = 256;
+  const osmURL = (z,x,y)=>`https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  const radarURL = (ts,z,x,y)=>`https://tilecache.rainviewer.com/v2/radar/${ts}/256/${z}/${x}/${y}/2/1_1.png`;
+  const lon2x = (lon,z)=> ((lon+180)/360)*Math.pow(2,z);
+  const lat2y = (lat,z)=>{ const r=lat*Math.PI/180, n=Math.pow(2,z); return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n; };
+  function mapCenter(lat,lon,z=7){ state.map.z=z; state.map.lon=lon; state.map.lat=lat; drawBase(); drawRadar(); }
+
+  function resizeCanvases(){
+    const w = mapEl.clientWidth, h = mapEl.clientHeight, dpr = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+    [baseCanvas, radarCanvas].forEach(c=>{
+      c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+      c.style.width = w+'px'; c.style.height = h+'px';
+      const ctx = (c===baseCanvas?bctx:rctx); ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.imageSmoothingEnabled = true; ctx.clearRect(0,0,w,h);
+    });
+  }
+  window.addEventListener('resize', ()=>{ resizeCanvases(); drawBase(); drawRadar(); });
+
+  const imgCache = new Map();
+  function loadImg(url){
+    return new Promise((res,rej)=>{
+      if(imgCache.has(url)){
+        const im=imgCache.get(url);
+        if(im.complete) return res(im);
+        return im.addEventListener('load',()=>res(im),{once:true});
+      }
+      const im = new Image(); im.crossOrigin='anonymous'; im.referrerPolicy='no-referrer';
+      im.onload=()=>{ imgCache.set(url, im); res(im); };
+      im.onerror=rej; im.src=url; imgCache.set(url, im);
+    });
+  }
+
+  function eachVisibleTiles(cb){
+    const {z, lon, lat} = state.map;
+    const w = mapEl.clientWidth, h = mapEl.clientHeight;
+    const cx = lon2x(lon,z), cy = lat2y(lat,z);
+    const tilesX = Math.ceil(w/TILE)+2, tilesY = Math.ceil(h/TILE)+2;
+    const startX = Math.floor(cx-tilesX/2), startY = Math.floor(cy-tilesY/2);
+    const offsetX=(startX-cx)*TILE + w/2, offsetY=(startY-cy)*TILE + h/2;
+    for(let i=0;i<tilesX;i++){
+      for(let j=0;j<tilesY;j++){
+        let x=startX+i, y=startY+j, max=Math.pow(2,z);
+        let wrappedX=((x%max)+max)%max; if(y<0||y>=max) continue;
+        const dx = Math.floor(offsetX + i*TILE), dy = Math.floor(offsetY + j*TILE);
+        cb({z, x:wrappedX, y, dx, dy});
+      }
+    }
+  }
+
+  function drawBase(){
+    const w = mapEl.clientWidth, h = mapEl.clientHeight;
+    bctx.clearRect(0,0,w,h);
+    eachVisibleTiles(({z,x,y,dx,dy})=>{
+      const url = osmURL(z,x,y);
+      loadImg(url).then(im=>{
+        bctx.drawImage(im, 0,0,TILE,TILE, dx-0.5, dy-0.5, TILE+1, TILE+1); // 1px átfedés
+      }).catch(()=>{ /* ignore */ });
+    });
+  }
+
+  const radar = state.radar;
+  async function loadFrames(){
+    try{
+      const j = await xfetch('https://api.rainviewer.com/public/weather-maps.json').then(r=>r.json());
+      const past = j && j.radar && j.radar.past ? j.radar.past : [];
+      const nowc = j && j.radar && j.radar.nowcast ? j.radar.nowcast : [];
+      radar.frames = past.concat(nowc);
+      if(!radar.frames.length) throw new Error('no-frames');
+      radar.idx = radar.frames.length-1; buildTimeline(); drawRadar(); play();
+    }catch{ toast('Nem sikerült betölteni a radart.','warn'); }
+  }
+  function buildTimeline(){
+    dotsEl.innerHTML='';
+    radar.frames.forEach((_,i)=>{
+      const d=document.createElement('div'); d.className='dot'+(i===radar.idx?' active':'');
+      d.title=new Date(radar.frames[i].time*1000).toLocaleString('hu-HU');
+      d.onclick=()=>{ radar.idx=i; drawRadar(); pause(); };
+      dotsEl.appendChild(d);
+    });
+  }
+  function highlightDot(){ [...dotsEl.children].forEach((el,i)=>el.classList.toggle('active', i===radar.idx)); }
+
+  function drawRadar(){
+    const w = mapEl.clientWidth, h = mapEl.clientHeight;
+    rctx.clearRect(0,0,w,h);
+    if(!radar.frames.length) return;
+    const fr = radar.frames[radar.idx];
+    eachVisibleTiles(({z,x,y,dx,dy})=>{
+      const url = radarURL(fr.time, z, x, y);
+      loadImg(url).then(im=>{
+        rctx.drawImage(im, 0,0,TILE,TILE, dx-0.5, dy-0.5, TILE+1, TILE+1); // 1px átfedés
+      }).catch(()=>{ /* ignore */ });
+    });
+    const dt = new Date(fr.time*1000);
+    timeLabel.textContent = dt.toLocaleString('hu-HU',{hour:'2-digit',minute:'2-digit',month:'short',day:'2-digit'});
+    highlightDot();
+  }
+
+  function step(dir=1){ if(!radar.frames.length) return; radar.idx=(radar.idx+dir+radar.frames.length)%radar.frames.length; drawRadar(); }
+  function play(){ pause(); radar.playing=true; radar.timer=setInterval(()=>step(1), 800); }
+  function pause(){ radar.playing=false; if(radar.timer){ clearInterval(radar.timer); radar.timer=null; } }
+  $('#radarPlay').onclick = play; $('#radarPause').onclick = pause; $('#radarNow').onclick = ()=>{ radar.idx=Math.max(0,radar.frames.length-1); drawRadar(); };
+
+  // Interakciók
+  $('#zoomIn').onclick = ()=>{ state.map.z = Math.min(12, state.map.z+1); drawBase(); drawRadar(); };
+  $('#zoomOut').onclick = ()=>{ state.map.z = Math.max(2, state.map.z-1); drawBase(); drawRadar(); };
+  $('#locate').onclick = ()=>{ if(state.place) mapCenter(state.place.lat, state.place.lon, Math.max(8,state.map.z)); };
+  mapEl.addEventListener('pointerdown', e=>{ state.map.dragging=true; state.map.last={x:e.clientX,y:e.clientY}; mapEl.setPointerCapture(e.pointerId); });
+  mapEl.addEventListener('pointermove', e=>{
+    if(!state.map.dragging) return;
+    const dx=e.clientX-state.map.last.x, dy=e.clientY-state.map.last.y;
+    state.map.last={x:e.clientX,y:e.clientY};
+    const worldW = TILE*Math.pow(2,state.map.z);
+    const lonPerPx = 360/worldW, latPerPx = 360/worldW;
+    state.map.lon -= dx*lonPerPx; state.map.lat += dy*latPerPx;
+    drawBase(); drawRadar();
+  });
+  mapEl.addEventListener('pointerup', ()=>{ state.map.dragging=false; });
+  mapEl.addEventListener('wheel', e=>{ e.preventDefault(); const d=Math.sign(e.deltaY); state.map.z=Math.min(12,Math.max(2,state.map.z-d)); drawBase(); drawRadar(); }, {passive:false});
+
+  // init
+  resizeCanvases(); drawBase(); loadFrames();
+
+  /* ===== kis utilok ===== */
+  function formatTime(s){ const d=new Date(s); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function niceDate(s){ const d=new Date(s); return d.toLocaleDateString('hu-HU',{month:'short',day:'2-digit',weekday:'short'}); }
+  function pad(n){ return n<10?'0'+n:n; }
+  function nearestIndex(arr, iso){ const now=+new Date(iso); let i=-1; for(let k=0;k<arr.length;k++){ if(+new Date(arr[k])>=now){ i=k; break; } } return i<0?0:i; }
+  function guessIsDay(iso, sr, ss){ const t=+new Date(iso), a=+new Date(sr), b=+new Date(ss); return t>=a && t<b; }
+  function svgUse(id,size,cls){ if(size===void 0) size=48; if(!cls) cls=''; return '<svg class="'+cls+'" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" aria-hidden="true"><use href="#'+id+'"/></svg>'; }
+  function safeRound(x){ const n=Number(x); return isFinite(n)?Math.round(n):'—'; }
+  function persist(){ localStorage.setItem('weather:last', JSON.stringify({ units:state.units, place:state.place })); }
+})(); // IIFE vége
+</script>
+</body>
+</html>
