@@ -12,6 +12,7 @@
   --done-bg: #223355;
   --done-txt: #7E9ACD;
 }
+
 body {
   background: var(--background);
   color: var(--text);
@@ -19,6 +20,7 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
 header {
   display: flex;
   justify-content: space-between;
@@ -28,11 +30,13 @@ header {
   box-shadow: var(--card-shadow);
   border-bottom: 1px solid var(--border);
 }
+
 h1, h2 {
   color: var(--primary);
   margin-bottom: 1rem;
   text-align: center;
 }
+
 section {
   margin: 2rem auto;
   padding: 1.5rem 1rem;
@@ -42,26 +46,31 @@ section {
   border-radius: 15px;
   border: 1px solid var(--border);
 }
+
 form {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+
 input, button {
   padding: 0.6rem;
   border: none;
   border-radius: 6px;
 }
+
 input {
   flex: 1;
   background: #19223A;
   color: var(--text);
   border: 1px solid var(--border);
 }
+
 input[type="time"] {
   width: 120px;
   flex: unset;
 }
+
 button {
   background: var(--primary);
   color: var(--text);
@@ -69,14 +78,17 @@ button {
   transition: background 0.2s;
   font-weight: bold;
 }
+
 button:hover, button:focus {
   background: var(--primary-dark);
 }
+
 ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 li {
   background: var(--card-bg);
   box-shadow: 0 2px 8px rgba(36,123,255,0.09);
@@ -89,10 +101,15 @@ li {
   border: 1px solid #24314b;
   transition: background 0.2s;
 }
+
 li.done {
   background: var(--done-bg);
 }
-li.done label { text-decoration: line-through; color: var(--done-txt); }
+li.done label { 
+  text-decoration: line-through; 
+  color: var(--done-txt); 
+}
+
 li .delete-btn {
   background: none;
   color: var(--danger);
@@ -101,12 +118,14 @@ li .delete-btn {
   border: none;
   margin-left: 1rem;
 }
+
 .error {
   color: var(--danger);
   margin-top: .5rem;
   min-height: 1.2em;
   text-align: center;
 }
+
 #login-section {
   background: var(--card-bg);
   max-width: 330px;
@@ -122,10 +141,12 @@ li .delete-btn {
   min-height: 60vh;
   text-align: center;
 }
+
 #login-section h2 {
   text-align: center;
   width: 100%;
 }
+
 #pin-form {
   display: flex;
   flex-direction: column;
@@ -133,13 +154,16 @@ li .delete-btn {
   width: 100%;
   align-items: center;
 }
+
 #pin-input, #pin-submit {
   width: 100%;
 }
+
 #login-section .error {
   margin-top: 1rem;
   text-align: center;
 }
+
 .calendar-card {
   background: var(--card-bg);
   border-radius: 15px;
@@ -150,12 +174,14 @@ li .delete-btn {
   margin-left: auto;
   margin-right: auto;
 }
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
   margin-top: 1rem;
 }
+
 .calendar-cell {
   background: #1b2535;
   color: var(--text);
@@ -167,17 +193,21 @@ li .delete-btn {
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .calendar-cell:hover {
   background: var(--primary-light);
 }
+
 .calendar-cell.selected {
   background: var(--primary-dark);
   color: #fff;
   font-weight: bold;
 }
+
 .calendar-cell.today {
   border: 2px solid var(--primary-light);
 }
+
 .calendar-dot {
   position: absolute;
   bottom: 6px;
@@ -187,6 +217,7 @@ li .delete-btn {
   border-radius: 50%;
   z-index: 2;
 }
+
 .calendar-count {
   position: absolute;
   top: 26px;
@@ -199,12 +230,14 @@ li .delete-btn {
   opacity: 0.77;
   letter-spacing: 0.5px;
 }
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: .4rem;
 }
+
 .calendar-arrow {
   background: none;
   border: none;
@@ -214,6 +247,7 @@ li .delete-btn {
   margin: 0 0.3rem;
   padding: 0;
 }
+
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -222,6 +256,7 @@ li .delete-btn {
   font-size: .93em;
   margin-bottom: .2rem;
 }
+
 /* Mobilos középrehelyezés minden modulra + PIN szöveg is középre */
 @media (max-width: 600px) {
   #main-section {
@@ -238,12 +273,16 @@ li .delete-btn {
     margin-right: 0;
     align-self: center;
   }
-  header { flex-direction: column; gap: 0.5rem; }
+  header { 
+    flex-direction: column; 
+    gap: 0.5rem; 
+  }
   #login-section {
     min-height: 100vh;
     margin-top: 0;
   }
 }
+
 /* ---- Egységes felső gombok ---- */
 .top-buttons {
   display: flex;
