@@ -331,8 +331,8 @@
 
   function fallbackIfNoPlace(){
     if(!state.place){
-      state.place = { name:'Budapest', country:'HU', admin1:'Budapest',
-        lat:47.4979, lon:19.0402, timezone:'Europe/Budapest' };
+      state.place = { name:'Edelény', country:'HU', admin1:'Edelény',
+        lat:48.30, lon:20.73, timezone:'Europe/Budapest' };
       persist();
       fetchAll();
       mapCenter(state.place.lat, state.place.lon, 8);
@@ -751,4 +751,5 @@
 </body>
 
 </html>
+
 
