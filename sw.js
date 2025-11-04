@@ -25,3 +25,4 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+\nself.addEventListener('install',(e)=>{e.waitUntil(caches.open('familyboard-cache').then(c=>c.addAll(['/blog/blog.html','/blog/blog.css','/blog/blog.js'])));});\n

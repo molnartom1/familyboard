@@ -28,18 +28,35 @@
 
 <div id="main-section" style="display:none;">
   <header>
-    <h1>FamilyBoard - Családi Naptár</h1>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="weather.html" class="weather-link" style="
-        background:#247BFF;
-        color:white;
-        padding:0.5em 1em;
-        border-radius:8px;
-        text-decoration:none;
-        font-weight:bold;
-      ">🌦️ Időjárás</a>
-      <button id="logout-btn">Kijelentkezés</button>
-    </div>
+   <h1>FamilyBoard - Családi Naptár</h1>
+<div style="display:flex;gap:10px;align-items:center;">
+  <a href="weather.html" class="weather-link" style="
+    background:#247BFF;
+    color:white;
+    padding:0.5em 1em;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+  ">🌦️ Időjárás</a>
+
+  <a href="blog/blog.html" id="blogLink" class="weather-link" style="
+    background:#247BFF;
+    color:white;
+    padding:0.5em 1em;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+  ">📝 Blog</a>
+
+  <button id="logout-btn" class="weather-link" style="
+    background:#247BFF;
+    color:white;
+    padding:0.5em 1em;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+  ">Kijelentkezés</button>
+</div>
   </header>
 
   <section class="calendar-card">
@@ -399,5 +416,53 @@ function maiNevnap() {
 }
 maiNevnap();
 </script>
+
+  <dialog id="pinDlg" style="border:0;border-radius:10px;padding:1rem 1.2rem;max-width:320px">
+    <form method="dialog" id="pinForm" style="display:flex;flex-direction:column;gap:.7rem">
+      <h3 style="margin:.2rem 0 .4rem">PIN szükséges</h3>
+      <p style="margin:0;color:#555">Add meg a 4–6 számjegyű PIN-kódot a Blog megnyitásához.</p>
+      <input id="pinInput" type="password" inputmode="numeric" pattern="\d{4,6}" maxlength="6" placeholder="••••" autofocus style="font-size:1.2rem;padding:.6rem;border:1px solid #ddd;border-radius:8px">
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button value="cancel" style="background:#eee;padding:.5rem .8rem;border-radius:8px">Mégse</button>
+        <button id="pinOk" value="ok" style="background:#247BFF;color:#fff;padding:.5rem .8rem;border-radius:8px">OK</button>
+      </div>
+      <small style="color:#888">Alapértelmezett PIN: 2024</small>
+    </form>
+  </dialog>
+  <script>
+    (function(){
+      const PIN_KEY='FB_PIN', OK_KEY='FB_PIN_OK';
+      const blogLink=document.getElementById('blogLink');
+      const dlg=document.getElementById('pinDlg');
+      const form=document.getElementById('pinForm');
+      const input=document.getElementById('pinInput');
+      const pin=localStorage.getItem(PIN_KEY)||'2024';
+      const ok=sessionStorage.getItem(OK_KEY)==='1';
+
+      if (ok) {
+        blogLink.setAttribute('href','blog/blog.html');
+      } else {
+        blogLink.addEventListener('click', function(e){
+          e.preventDefault();
+          try{ if(!dlg.open) dlg.showModal(); }catch(err){ dlg.show(); }
+        });
+      }
+
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        const v=(input.value||'').trim();
+        if(!v){ input.focus(); return; }
+        if(v===pin){
+          sessionStorage.setItem(OK_KEY,'1');
+          dlg.close();
+          window.location.href='blog/blog.html';
+        } else {
+          alert('Hibás PIN.');
+          input.select();
+        }
+      });
+    })();
+  </script>
+
 </body>
 </html>
