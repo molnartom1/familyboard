@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FamilyBoard – Blog üzenőfal</title>
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="./blog.css">
+</head>
+<body>
+  <header class="fb-header">
+    <div class="fb-container">
+      <h1 class="fb-title">Blog típusú üzenőfal</h1>
+      <nav class="fb-nav">
+        <a class="fb-link" href="../index.html">← Vissza a főoldalra</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="fb-container fb-main">
+    <section class="fb-toolbar">
+      <input id="searchInput" type="search" placeholder="Keresés a bejegyzésekben…" aria-label="Keresés">
+      <select id="sortSelect" aria-label="Rendezés">
+        <option value="newest">Legújabb elöl</option>
+        <option value="oldest">Legrégebbi elöl</option>
+        <option value="title">Cím szerint (A→Z)</option>
+      </select>
+      <button id="newPostBtn" class="fb-btn primary">Új bejegyzés</button>
+    </section>
+
+    <section id="tagChips" class="fb-chips" aria-label="Címkék szűrése"></section>
+
+    <section id="postGrid" class="fb-grid" aria-live="polite"></section>
+  </main>
+
+  <dialog id="postModal">
+    <form method="dialog" id="postForm" class="fb-modal">
+      <header class="fb-modal-header">
+        <h2 id="modalTitle">Új bejegyzés</h2>
+        <button type="button" id="closeModal" class="fb-icon-btn" aria-label="Bezárás">✕</button>
+      </header>
+      <div class="fb-modal-body">
+        <label class="fb-field">
+          <span>Cím</span>
+          <input type="text" id="titleInput" required maxlength="140" placeholder="Bejegyzés címe">
+        </label>
+
+        <label class="fb-field">
+          <span>Tartalom (Markdown támogatott)</span>
+          <textarea id="contentInput" rows="8" placeholder="Írd ide a bejegyzést…"></textarea>
+        </label>
+
+        <div class="fb-two-cols">
+          <label class="fb-field">
+            <span>Címkék (vesszővel elválasztva)</span>
+            <input type="text" id="tagsInput" placeholder="pl. recept, program">
+          </label>
+
+          <label class="fb-field checkbox">
+            <input type="checkbox" id="pinnedInput">
+            <span>Rögzített (felül jelenik meg)</span>
+          </label>
+        </div>
+
+        <label class="fb-field">
+          <span>Kép (opcionális)</span>
+          <input type="file" id="imageInput" accept="image/*">
+        </label>
+
+        <details class="fb-preview">
+          <summary>Előnézet</summary>
+          <article id="preview" class="fb-card fb-post"></article>
+        </details>
+      </div>
+
+      <footer class="fb-modal-footer">
+        <button type="submit" class="fb-btn primary" id="saveBtn">Mentés</button>
+        <button type="button" class="fb-btn" id="deleteBtn">Törlés</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <template id="postCardTmpl">
+    <article class="fb-card fb-post">
+      <img class="fb-post-img" alt="" hidden>
+      <div class="fb-post-body">
+        <header class="fb-post-header">
+          <h3 class="fb-post-title"></h3>
+          <div class="fb-post-meta">
+            <time class="fb-post-date"></time>
+            <span class="fb-pin" hidden>📌 rögzített</span>
+          </div>
+        </header>
+        <div class="fb-post-content"></div>
+        <footer class="fb-post-footer">
+          <div class="fb-tags"></div>
+          <div class="fb-actions">
+            <button class="fb-icon-btn edit" title="Szerkesztés" aria-label="Szerkesztés">✏️</button>
+            <button class="fb-icon-btn del" title="Törlés" aria-label="Törlés">🗑️</button>
+          </div>
+        </footer>
+      </div>
+    </article>
+  </template>
+
+  <script src="./blog.js" type="module"></script>
+</body>
+</html>
