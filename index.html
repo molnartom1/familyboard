@@ -91,6 +91,7 @@ const pinBtn = document.getElementById("pin-submit");
 const pinError = document.getElementById("pin-error");
 pinBtn.onclick = function() {
   if (pinInput.value === CORRECT_PIN) {
+    localStorage.setItem("fb_logged_in", "1");   // <-- EMLÉKEZTETŐ FLAG
     loginSection.style.display = "none";
     mainSection.style.display = "block";
     anonymousSignIn();
@@ -102,6 +103,7 @@ pinInput.addEventListener("keyup", function(event) {
   if (event.key === "Enter") pinBtn.click();
 });
 document.getElementById("logout-btn").onclick = function() {
+  localStorage.removeItem("fb_logged_in");  // <-- FLAG TÖRLÉSE
   mainSection.style.display = "none";
   loginSection.style.display = "block";
   pinInput.value = "";
@@ -117,7 +119,13 @@ function anonymousSignIn() {
     fetchMonthlyEventsAndRender();
     loadEvents();
     loadItems();
-  }).catch(error => {
+// Auto-login: skip PIN if remembered
+if (localStorage.getItem("fb_logged_in") === "1") {
+  loginSection.style.display = "none";
+  mainSection.style.display = "block";
+  anonymousSignIn();
+}    
+   }).catch(error => {
     pinError.innerText = "Firebase auth hiba: " + error.message;
   });
 }
